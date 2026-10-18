@@ -70,7 +70,7 @@ Under `sidebar:` you can configure the following options:
 | `showTopMenuOnMobile` | boolean | optional | `true` | If you hide the top menu you can set this to `true` so that it will be shown on mobile |
 | `hideHassSidebar` | boolean | optional | `true` | Hide the home assistant sidebar |
 | `dockHassSidebar` | boolean | optional | `false` | Collapse the home assistant sidebar behind the menu button, like the profile setting "always hidden". Home Assistant remembers this per browser, so switch it back in your profile if you remove the option |
-| `hideOnPath` | array | optional | /lovelace/camera | If you don't want the sidebar on every path you can add a list of paths where it should hide the sidebar |
+| `hideOnPath` | array | optional | /lovelace/camera | If you don't want the sidebar on every path you can add a list of paths where it should hide the sidebar. Use the full path from the browser address bar without host and query, e.g. `/lovelace/camera` or `/dashboard-kiosk/cameras` |
 | `hideTopMenu` | boolean | optional | `true` | Hide the top home assistant menu |
 | `debug` | boolean | optional | `false` | Show debugging messages in the browser's developer console |
 
@@ -203,6 +203,7 @@ sidebar:
         --clock-seconds-hand-color: #FF4B3E;
         --clock-middle-background: #FFF;
         --clock-middle-border: #000;
+        --sidebar-divider-color: rgba(255, 255, 255, 0.2);
     }
 
 ```

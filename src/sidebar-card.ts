@@ -556,8 +556,8 @@ class SidebarCard extends LitElement {
         list-style: none;
         margin: 20px 0;
         padding: 20px 0;
-        border-top: 1px solid rgba(255, 255, 255, 0.2);
-        border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+        border-top: 1px solid var(--sidebar-divider-color, rgba(255, 255, 255, 0.2));
+        border-bottom: 1px solid var(--sidebar-divider-color, rgba(255, 255, 255, 0.2));
       }
       .sidebarMenu li {
         color: var(--sidebar-text-color, #000);
@@ -988,6 +988,12 @@ function updateStyling(appLayout: any, sidebarConfig: any) {
   }
 }
 
+// true when hideOnPath lists the current path; accepts a single path and ignores trailing slashes (#153)
+function isPathHidden(sidebarConfig: any) {
+  const trim = (path: string) => String(path).replace(/\/+$/, '');
+  return ([] as any[]).concat(sidebarConfig.hideOnPath).map(trim).includes(trim(window.location.pathname));
+}
+
 // watch and handle the resize and location-changed events
 function subscribeEvents(appLayout: any, sidebarConfig: any, contentContainer: any, sidebar: any) {
   window.addEventListener(
@@ -1000,7 +1006,7 @@ function subscribeEvents(appLayout: any, sidebarConfig: any, contentContainer: a
 
   if ('hideOnPath' in sidebarConfig) {
     window.addEventListener('location-changed', () => {
-      if (sidebarConfig.hideOnPath.includes(window.location.pathname)) {
+      if (isPathHidden(sidebarConfig)) {
         contentContainer.classList.add('hideSidebar');
         sidebar.classList.add('hide');
       } else {
@@ -1009,7 +1015,7 @@ function subscribeEvents(appLayout: any, sidebarConfig: any, contentContainer: a
       }
     });
 
-    if (sidebarConfig.hideOnPath.includes(window.location.pathname)) {
+    if (isPathHidden(sidebarConfig)) {
       log2console('subscribeEvents', 'Disable sidebar for this path');
       contentContainer.classList.add('hideSidebar');
       sidebar.classList.add('hide');
