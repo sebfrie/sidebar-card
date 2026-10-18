@@ -302,7 +302,7 @@ class SidebarCard extends LitElement {
 
     if (sidebarInner) {
       sidebarInner.style.width = this.offsetWidth + 'px';
-      if(this.config.hideTopMenu) {
+      if (isTopMenuHidden(this.config, document.body.clientWidth)) {
         sidebarInner.style.height = `${window.innerHeight}px`;
         sidebarInner.style.top = '0px';
       } else {
@@ -735,23 +735,22 @@ customElements.define('sidebar-card', SidebarCard);
 // ##########################################################################################
 
 function createCSS(sidebarConfig: any, width: number) {
+  const hideTopMenu = isTopMenuHidden(sidebarConfig, width);
+  const headerHeightPx = getHeaderHeightPx();
   let sidebarWidth = 25;
-  let contentWidth = 75;
-  let sidebarResponsive = false;
-  let headerHeightPx = getHeaderHeightPx();
 
-  if (sidebarConfig.width) {
-    if (typeof sidebarConfig.width == 'number') {
-      sidebarWidth = sidebarConfig.width;
-      contentWidth = 100 - sidebarWidth;
-    } else if (typeof sidebarConfig.width == 'object') {
-      sidebarWidth = sidebarConfig.desktop;
-      contentWidth = 100 - sidebarWidth;
-      sidebarResponsive = true;
+  if (typeof sidebarConfig.width == 'number') {
+    sidebarWidth = sidebarConfig.width;
+  } else if (sidebarConfig.width && typeof sidebarConfig.width == 'object') {
+    if (width <= sidebarConfig.breakpoints.mobile) {
+      sidebarWidth = sidebarConfig.width.mobile;
+    } else if (width <= sidebarConfig.breakpoints.tablet) {
+      sidebarWidth = sidebarConfig.width.tablet;
+    } else {
+      sidebarWidth = sidebarConfig.width.desktop;
     }
   }
-  // create css
-  let css = `
+  return `
     #customSidebarWrapper { 
       display:flex;
       flex-direction:row;
@@ -764,139 +763,17 @@ function createCSS(sidebarConfig: any, width: number) {
     #view.hideSidebar {
       width:100%!important;
     }
-  `;
-  if (sidebarResponsive) {
-    if (width <= sidebarConfig.breakpoints.mobile) {
-      if (sidebarConfig.width.mobile == 0) {
-        css +=
-          `
-          #customSidebar {
-            width:` +
-          sidebarConfig.width.mobile +
-          `%;
-            overflow:hidden;
-            display:none;
-            ${sidebarConfig.hideTopMenu ? '' : 'margin-top: calc('+headerHeightPx+' + env(safe-area-inset-top));'}
-          } 
-          #view {
-            width:` +
-          (100 - sidebarConfig.width.mobile) +
-          `%;
-          ${sidebarConfig.hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
-          }
-        `;
-      } else {
-        css +=
-          `
-          #customSidebar {
-            width:` +
-          sidebarConfig.width.mobile +
-          `%;
-            overflow:hidden;
-            ${sidebarConfig.hideTopMenu ? '' : 'margin-top: calc('+headerHeightPx+' + env(safe-area-inset-top));'}
-          } 
-          #view {
-            width:` +
-          (100 - sidebarConfig.width.mobile) +
-          `%;
-          ${sidebarConfig.hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
-          }
-        `;
-      }
-    } else if (width <= sidebarConfig.breakpoints.tablet) {
-      if (sidebarConfig.width.tablet == 0) {
-        css +=
-          `
-          #customSidebar {
-            width:` +
-          sidebarConfig.width.tablet +
-          `%;
-            overflow:hidden;
-            display:none;
-            ${sidebarConfig.hideTopMenu ? '' : 'margin-top: calc('+headerHeightPx+' + env(safe-area-inset-top));'}
-          } 
-          #view {
-            width:` +
-          (100 - sidebarConfig.width.tablet) +
-          `%;
-          ${sidebarConfig.hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
-          }
-        `;
-      } else {
-        css +=
-          `
-          #customSidebar {
-            width:` +
-          sidebarConfig.width.tablet +
-          `%;
-            overflow:hidden;
-            ${sidebarConfig.hideTopMenu ? '' : 'margin-top: calc('+headerHeightPx+' + env(safe-area-inset-top));'}
-          } 
-          #view {
-            width:` +
-          (100 - sidebarConfig.width.tablet) +
-          `%;
-          ${sidebarConfig.hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
-          }
-        `;
-      }
-    } else {
-      if (sidebarConfig.width.tablet == 0) {
-        css +=
-          `
-          #customSidebar {
-            width:` +
-          sidebarConfig.width.desktop +
-          `%;
-            overflow:hidden;
-            display:none;
-            ${sidebarConfig.hideTopMenu ? '' : 'margin-top: calc('+headerHeightPx+' + env(safe-area-inset-top));'}
-          } 
-          #view {
-            width:` +
-          (100 - sidebarConfig.width.desktop) +
-          `%;
-          ${sidebarConfig.hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
-          }
-        `;
-      } else {
-        css +=
-          `
-          #customSidebar {
-            width:` +
-          sidebarConfig.width.desktop +
-          `%;
-            overflow:hidden;
-            ${sidebarConfig.hideTopMenu ? '' : 'margin-top: calc('+headerHeightPx+' + env(safe-area-inset-top));'}
-          } 
-          #view {
-            width:` +
-          (100 - sidebarConfig.width.desktop) +
-          `%;
-          ${sidebarConfig.hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
-          }
-        `;
-      }
+    #customSidebar {
+      width:${sidebarWidth}%;
+      overflow:hidden;
+      ${sidebarWidth == 0 ? 'display:none;' : ''}
+      ${hideTopMenu ? '' : 'margin-top: calc(' + headerHeightPx + ' + env(safe-area-inset-top));'}
     }
-  } else {
-    css +=
-      `
-      #customSidebar {
-        width:` +
-      sidebarWidth +
-      `%;
-        overflow:hidden;
-        ${sidebarConfig.hideTopMenu ? '' : 'margin-top: calc('+headerHeightPx+' + env(safe-area-inset-top));'}
-      } 
-      #view {
-        width:` +
-      contentWidth +
-      `%;
-      ${sidebarConfig.hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
-      }
-    `;
-  }
-  return css;
+    #view {
+      width:${100 - sidebarWidth}%;
+      ${hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
+    }
+  `;
 }
 
 // ##########################################################################################
@@ -983,30 +860,74 @@ function getSidebar() {
   return sidebar;
 }
 
-// Returns the Home Assistant app-drawer layout element
-function getAppDrawerLayout() {
-  let appDrawerLayout: any = document.querySelector('home-assistant');
-  appDrawerLayout = appDrawerLayout && appDrawerLayout.shadowRoot;
-  appDrawerLayout = appDrawerLayout && appDrawerLayout.querySelector('home-assistant-main');
-  appDrawerLayout = appDrawerLayout && appDrawerLayout.shadowRoot;
-  appDrawerLayout = appDrawerLayout && appDrawerLayout.querySelector('ha-drawer'); // ha-drawer
-  appDrawerLayout = appDrawerLayout && appDrawerLayout.shadowRoot;
-  appDrawerLayout = appDrawerLayout && appDrawerLayout.querySelector('.mdc-drawer-app-content');
-
-  return appDrawerLayout;
+// Returns the Home Assistant ha-drawer element that holds the HA sidebar
+function getDrawer() {
+  let drawer: any = document.querySelector('home-assistant');
+  drawer = drawer && drawer.shadowRoot;
+  drawer = drawer && drawer.querySelector('home-assistant-main');
+  drawer = drawer && drawer.shadowRoot;
+  return drawer && drawer.querySelector('ha-drawer');
 }
 
-// Returns the Home Assistant app-drawer element
-function getAppDrawer() {
-  let appDrawer: any = document.querySelector('home-assistant');
-  appDrawer = appDrawer && appDrawer.shadowRoot;
-  appDrawer = appDrawer && appDrawer.querySelector('home-assistant-main');
-  appDrawer = appDrawer && appDrawer.shadowRoot;
-  appDrawer = appDrawer && appDrawer.querySelector('ha-drawer'); // ha-drawer
-  appDrawer = appDrawer && appDrawer.shadowRoot;
-  appDrawer = appDrawer && appDrawer.querySelector('.mdc-drawer');
+// Returns the Home Assistant app-drawer layout element (HA before 2026.6)
+function getAppDrawerLayout() {
+  const drawer = getDrawer();
+  return drawer && drawer.shadowRoot && drawer.shadowRoot.querySelector('.mdc-drawer-app-content');
+}
 
-  return appDrawer;
+// Returns the Home Assistant app-drawer element (HA before 2026.6)
+function getAppDrawer() {
+  const drawer = getDrawer();
+  return drawer && drawer.shadowRoot && drawer.shadowRoot.querySelector('.mdc-drawer');
+}
+
+// true when the HA header should be hidden at this screen width
+function isTopMenuHidden(sidebarConfig: any, width: number) {
+  return (
+    sidebarConfig.hideTopMenu === true &&
+    getParameterByName('sidebarOff') == null &&
+    !(sidebarConfig.showTopMenuOnMobile === true && width <= (sidebarConfig.breakpoints?.mobile ?? 768))
+  );
+}
+
+// hides or restores the HA sidebar
+function setHassSidebarHidden(hidden: boolean) {
+  const hassSidebar = getSidebar();
+  if (hassSidebar) {
+    hassSidebar.style.display = hidden ? 'none' : '';
+  }
+  const appDrawerLayout = getAppDrawerLayout();
+  if (appDrawerLayout) {
+    appDrawerLayout.style.marginLeft = hidden ? '0' : '';
+    appDrawerLayout.style.paddingLeft = hidden ? '0' : '';
+  }
+  const appDrawer = getAppDrawer();
+  if (appDrawer) {
+    appDrawer.style.display = hidden ? 'none' : '';
+  }
+  // Since HA 2026.6 ha-drawer keeps a column of --ha-sidebar-width for the sidebar,
+  // which stayed as an empty white bar when only ha-sidebar was hidden (#155)
+  const drawer = getDrawer();
+  if (drawer) {
+    if (hidden) {
+      drawer.style.setProperty('--ha-sidebar-width', '0px');
+      drawer.style.setProperty('--ha-top-app-bar-width', '100%');
+    } else {
+      drawer.style.removeProperty('--ha-sidebar-width');
+      drawer.style.removeProperty('--ha-top-app-bar-width');
+    }
+    const drawerRoot = drawer.shadowRoot;
+    const shellStyle = drawerRoot && drawerRoot.getElementById('sidebarCardHideHassSidebar');
+    if (hidden && drawerRoot && !shellStyle) {
+      const style = document.createElement('style');
+      style.id = 'sidebarCardHideHassSidebar';
+      // the empty sidebar column still draws its border line
+      style.textContent = '.sidebar-shell { display: none !important; }';
+      drawerRoot.appendChild(style);
+    } else if (!hidden && shellStyle) {
+      shellStyle.remove();
+    }
+  }
 }
 
 // Returns a query parameter by its name
@@ -1023,8 +944,16 @@ function getParameterByName(name: string, url = window.location.href) {
 
 // hides (if requested) the HA header, HA footer and/or HA sidebar and hides this sidebar if configured so
 function updateStyling(appLayout: any, sidebarConfig: any) {
+  // listeners of a dashboard that is not shown anymore must not restyle the current one
+  if (!appLayout.isConnected) return;
   const width = document.body.clientWidth;
-  appLayout.querySelector('#customSidebarStyle').textContent = createCSS(sidebarConfig, width);
+  const hideTopMenu = isTopMenuHidden(sidebarConfig, width);
+  const style = appLayout.querySelector('#customSidebarStyle');
+  style.textContent = createCSS(sidebarConfig, width);
+  if (!hideTopMenu) {
+    // measure the header again now that #view has its top padding back
+    style.textContent = createCSS(sidebarConfig, width);
+  }
 
   const root = getRoot();
   // SAFETY CHECK: the HA UI root (or its shadowRoot) may not be ready yet — e.g. a
@@ -1039,32 +968,23 @@ function updateStyling(appLayout: any, sidebarConfig: any) {
   log2console('updateStyling', hassFooter ? 'Home Assistant footer found!' : 'Home Assistant footer not found!');
   const offParam = getParameterByName('sidebarOff');
   const view = root.shadowRoot.getElementById('view');
-  let headerHeightPx = getHeaderHeightPx();
 
-  if (sidebarConfig.hideTopMenu && sidebarConfig.hideTopMenu === true && sidebarConfig.showTopMenuOnMobile && sidebarConfig.showTopMenuOnMobile === true && width <= sidebarConfig.breakpoints.mobile && offParam == null) {
+  if (sidebarConfig.hideTopMenu === true && offParam == null) {
+    log2console('updateStyling', `Action: ${hideTopMenu ? 'Hide' : 'Show'} Home Assistant header and footer!`);
     if (hassHeader) {
-      log2console('updateStyling', 'Action: Show Home Assistant header!');
-      hassHeader.style.display = 'block';
-    }
-    if (view) {
-      view.style.minHeight = 'calc(100vh - '+headerHeightPx+')';
+      hassHeader.style.display = hideTopMenu ? 'none' : 'block';
     }
     if (hassFooter) {
-      log2console('updateStyling', 'Action: Show Home Assistant footer!');
-      hassFooter.style.display = 'flex';
-    }
-  } else if (sidebarConfig.hideTopMenu && sidebarConfig.hideTopMenu === true && offParam == null) {
-    if (hassHeader) {
-      log2console('updateStyling', 'Action: Hide Home Assistant header!');
-      hassHeader.style.display = 'none';
-    }
-    if (hassFooter) {
-      log2console('updateStyling', 'Action: Hide Home Assistant footer!');
-      hassFooter.style.display = 'none';
+      hassFooter.style.display = hideTopMenu ? 'none' : 'flex';
     }
     if (view) {
-      view.style.minHeight = 'calc(100vh)';
+      view.style.minHeight = hideTopMenu ? 'calc(100vh)' : 'calc(100vh - ' + getHeaderHeightPx() + ')';
     }
+  }
+
+  if (sidebarConfig.hideHassSidebar === true && offParam == null) {
+    // keep the HA sidebar usable when its menu button is shown on mobile (#74, #145)
+    setHassSidebarHidden(!(sidebarConfig.showTopMenuOnMobile === true && width <= sidebarConfig.breakpoints.mobile));
   }
 }
 
@@ -1164,15 +1084,19 @@ async function buildSidebar() {
     const sidebarConfig = Object.assign({}, lovelace.config.sidebar);
     if (!sidebarConfig.width || (sidebarConfig.width && typeof sidebarConfig.width == 'number' && sidebarConfig.width > 0 && sidebarConfig.width < 100) || (sidebarConfig.width && typeof sidebarConfig.width == 'object')) {
       const root = getRoot();
-      const hassSidebar = getSidebar();
-      const appDrawerLayout = getAppDrawerLayout();
-      const appDrawer = getAppDrawer();
       const offParam = getParameterByName('sidebarOff');
     
       // SAFETY CHECK: Only continue if root and shadowRoot are valid
       if (!root || !root.shadowRoot) {
         // Prevents crash if Home Assistant UI root or its shadowRoot is not ready
         error2console('buildSidebar', 'Root element or shadowRoot not found!');
+        return;
+      }
+      await root.updateComplete;
+      const appLayout = root.shadowRoot.querySelector('div');
+      // Startup and the location-changed watcher can both get here; build only once (#152).
+      // Nothing below awaits before the wrapper is in the DOM, so this check cannot race.
+      if (!appLayout || !appLayout.querySelector('#view') || appLayout.querySelector('#customSidebarWrapper')) {
         return;
       }
 
@@ -1184,18 +1108,6 @@ async function buildSidebar() {
         if (root.shadowRoot.getElementById('view')) root.shadowRoot.getElementById('view').style.minHeight = 'calc(100vh)';
       }
 
-      if (sidebarConfig.hideHassSidebar && sidebarConfig.hideHassSidebar === true && offParam == null) {
-        if (hassSidebar) {
-          hassSidebar.style.display = 'none';
-        }
-        if (appDrawerLayout) {
-          appDrawerLayout.style.marginLeft = '0';
-          appDrawerLayout.style.paddingLeft = '0';
-        }
-        if (appDrawer) {
-          appDrawer.style.display = 'none';
-        }
-      }
       if (sidebarConfig.dockHassSidebar === true && offParam == null) {
         // Same as the profile setting "always hidden"; HA stores it per browser
         document.querySelector('home-assistant')?.dispatchEvent(
@@ -1216,7 +1128,6 @@ async function buildSidebar() {
         }
       }
 
-      let appLayout = root.shadowRoot.querySelector('div');
       let css = createCSS(sidebarConfig, document.body.clientWidth);
       let style: any = document.createElement('style');
       style.setAttribute('id', 'customSidebarStyle');
