@@ -1212,6 +1212,12 @@ async function buildSidebar() {
           appDrawer.style.display = 'none';
         }
       }
+      if (sidebarConfig.dockHassSidebar === true && offParam == null) {
+        // Same as the profile setting "always hidden"; HA stores it per browser
+        document.querySelector('home-assistant')?.dispatchEvent(
+          new CustomEvent('hass-dock-sidebar', { detail: { dock: 'always_hidden' }, bubbles: true, composed: true }),
+        );
+      }
       if (!sidebarConfig.breakpoints) {
         sidebarConfig.breakpoints = {
           tablet: 1024,

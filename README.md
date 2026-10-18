@@ -69,6 +69,7 @@ Under `sidebar:` you can configure the following options:
 | `bottomCard` | object | optional | *see info below* | Define any card that will be rendered at the bottom of the sidebar |
 | `showTopMenuOnMobile` | boolean | optional | `true` | If you hide the top menu you can set this to `true` so that it will be shown on mobile |
 | `hideHassSidebar` | boolean | optional | `true` | Hide the home assistant sidebar |
+| `dockHassSidebar` | boolean | optional | `false` | Collapse the home assistant sidebar behind the menu button, like the profile setting "always hidden". Home Assistant remembers this per browser, so switch it back in your profile if you remove the option |
 | `hideOnPath` | array | optional | /lovelace/camera | If you don't want the sidebar on every path you can add a list of paths where it should hide the sidebar |
 | `hideTopMenu` | boolean | optional | `true` | Hide the top home assistant menu |
 | `debug` | boolean | optional | `false` | Show debugging messages in the browser's developer console |
