@@ -93,25 +93,19 @@ class SidebarCard extends LitElement {
       window.addEventListener('location-changed', this._boundLocationChange);
       window.addEventListener('resize', this._boundResize, true);
 
-      const self = this;
-
       // Start timers if they are configured and not already running.
       if ((this.config.clock || this.config.digitalClock) && !this._clockInterval) {
         const inc = 1000;
         // Delay the first run slightly to ensure the DOM is ready.
-        setTimeout(() => self._runClock(), 50);
-        this._clockInterval = setInterval(function() {
-          self._runClock();
-        }, inc);
+        setTimeout(() => this._runClock(), 50);
+        this._clockInterval = setInterval(() => this._runClock(), inc);
       }
       if (this.config.date && !this._dateInterval) {
         // every minute, so the date flips close to midnight (#143)
         const inc = 1000 * 60;
         // Delay the first run slightly to ensure the DOM is ready.
-        setTimeout(() => self._runDate(), 50);
-        this._dateInterval = setInterval(function() {
-          self._runDate();
-        }, inc);
+        setTimeout(() => this._runDate(), 50);
+        this._dateInterval = setInterval(() => this._runDate(), inc);
       }
 
       this._updateActiveMenu();
@@ -271,7 +265,7 @@ class SidebarCard extends LitElement {
       //digitalTime;
       this.shadowRoot.querySelector('.digitalClock').textContent = digitalTime;
     } else if (this.digitalClock && this.twelveHourVersion && this.period) {
-      var ampm = realHours >= 12 ? 'pm' : 'am';
+      const ampm = realHours >= 12 ? 'pm' : 'am';
       hoursampm = date.getHours();
       hoursampm = hoursampm % 12;
       hoursampm = hoursampm ? hoursampm : 12;
@@ -368,7 +362,7 @@ class SidebarCard extends LitElement {
       this.shadowRoot.querySelectorAll('ul.sidebarMenu li[data-type="navigate"]').forEach((menuItem) => {
         menuItem.classList.remove('active');
       });
-      let activeEl = this.shadowRoot.querySelector('ul.sidebarMenu li[data-path="' + document.location.pathname + '"]');
+      const activeEl = this.shadowRoot.querySelector('ul.sidebarMenu li[data-path="' + document.location.pathname + '"]');
       if (activeEl) {
         activeEl.classList.add('active');
       }
@@ -395,7 +389,7 @@ class SidebarCard extends LitElement {
       // --- is_state('entity', 'value') ---
       const matchState = cleaned.match(/is_state\(['"]([^'"]+)['"],\s*['"]([^'"]+)['"]\)/);
       if (matchState) {
-        const [_, entityId, expected] = matchState;
+        const [, entityId, expected] = matchState;
         return hass.states[entityId]?.state === expected;
       }
 
@@ -404,14 +398,14 @@ class SidebarCard extends LitElement {
           /is_state_attr\(['"]([^'"]+)['"],\s*['"]([^'"]+)['"],\s*['"]([^'"]+)['"]\)/
       );
       if (matchAttr) {
-        const [_, entityId, attr, expected] = matchAttr;
+        const [, entityId, attr, expected] = matchAttr;
         return hass.states[entityId]?.attributes?.[attr] === expected;
       }
 
       // --- states['entity_id'] == 'value' ---
       const matchEquals = cleaned.match(/states\[['"]([^'"]+)['"]\]\s*==\s*['"]([^'"]+)['"]/);
       if (matchEquals) {
-        const [_, entityId, expected] = matchEquals;
+        const [, entityId, expected] = matchEquals;
         return hass.states[entityId]?.state === expected;
       }
 
@@ -421,7 +415,7 @@ class SidebarCard extends LitElement {
           /states\[['"]([^'"]+)['"]\]\s*\|\s*(int|float)\s*([<>]=?|==)\s*([\d.]+)/
       );
       if (numericMatch) {
-        const [_, entityId, type, operator, thresholdStr] = numericMatch;
+        const [, entityId, type, operator, thresholdStr] = numericMatch;
         const raw = hass.states[entityId]?.state;
         if (raw === undefined) return false;
         const num = type === "float" ? parseFloat(raw) : parseInt(raw, 10);
@@ -488,7 +482,7 @@ class SidebarCard extends LitElement {
             const func = new Function(code);
             func.call(this);
             forwardHaptic('success');
-          } catch (err) {
+          } catch {
             forwardHaptic('failure');
           }
         } else {
@@ -1134,8 +1128,8 @@ async function buildSidebar() {
         }
       }
 
-      let css = createCSS(sidebarConfig, document.body.clientWidth);
-      let style: any = document.createElement('style');
+      const css = createCSS(sidebarConfig, document.body.clientWidth);
+      const style: any = document.createElement('style');
       style.setAttribute('id', 'customSidebarStyle');
       appLayout.appendChild(style);
       style.type = 'text/css';
@@ -1146,14 +1140,14 @@ async function buildSidebar() {
         style.appendChild(document.createTextNode(css));
       }
       // get element to wrap
-      let contentContainer = appLayout.querySelector('#view');
+      const contentContainer = appLayout.querySelector('#view');
       // create wrapper container
       const wrapper = document.createElement('div');
       wrapper.setAttribute('id', 'customSidebarWrapper');
       // insert wrapper before el in the DOM tree
       contentContainer.parentNode.insertBefore(wrapper, contentContainer);
       // move el into wrapper
-      let sidebar = document.createElement('div');
+      const sidebar = document.createElement('div');
       sidebar.setAttribute('id', 'customSidebar');
       if (sidebarConfig.showRight) {
         wrapper.appendChild(contentContainer);
