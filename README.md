@@ -59,6 +59,7 @@ Under `sidebar:` you can configure the following options:
 | `digitalClockWithSeconds` | boolean | optional | `true` | If digitalClock is enabled you can also enable to show seconds |
 | `twelveHourVersion` | boolean | optional | `false` | If digitalClock is enabled you can also enable this to 12 hour version |
 | `period` | boolean | optional | `false` | If twelveHourVersion is enabled you can enable this to show 'AM' or 'PM' |
+| `showRight` | boolean | optional | `false` | If showRight is enabled the sidebar will be shown on the right side of the screen |
 | `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want |
 | `updateMenu` | boolean | optional | `true` | When false the active state of the sidebar will not change by navigating to a different view |
 | `template` | template | optional | *see info below* | Template rules that will show messages to inform you for example with how many lights are on |
