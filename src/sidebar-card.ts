@@ -504,7 +504,7 @@ class SidebarCard extends LitElement {
             .replace(/^\[\[\[\s*|\s*\]\]\]$/g, '');
             const func = new Function(code);
             func.call(this);
-            forwardHaptic('success');;
+            forwardHaptic('success');
           } catch (err) {
             forwardHaptic('failure');
           }
