@@ -45,7 +45,6 @@ class SidebarCard extends LitElement {
   date = false;
   dateFormat = 'DD MMMM';
   bottomCard: any = null;
-  CUSTOM_TYPE_PREFIX = 'custom:';
 
   // Markus:
   // Stores the setInterval handle for the periodic clock update
@@ -54,6 +53,7 @@ class SidebarCard extends LitElement {
   _clockInterval: any = null;
   _dateInterval: any = null;
   _boundLocationChange: any;
+  _boundResize: any;
 
   /* **************************************** *
    *        Element's public properties       *
@@ -76,15 +76,23 @@ class SidebarCard extends LitElement {
   constructor() {
     super();
     this._boundLocationChange = () => {
-        setTimeout(() => this._updateActiveMenu(), 50);
+        setTimeout(() => {
+          this._updateActiveMenu();
+          // the sidebar may have been shown again by hideOnPath (#78)
+          this.updateSidebarSize();
+        }, 50);
     };
-  }  
-  
+    this._boundResize = () => {
+      setTimeout(() => this.updateSidebarSize(), 1);
+    };
+  }
+
   connectedCallback() {
       super.connectedCallback();
       // Starts the observer for URL changes
       window.addEventListener('location-changed', this._boundLocationChange);
-      
+      window.addEventListener('resize', this._boundResize, true);
+
       const self = this;
 
       // Start timers if they are configured and not already running.
@@ -97,7 +105,8 @@ class SidebarCard extends LitElement {
         }, inc);
       }
       if (this.config.date && !this._dateInterval) {
-        const inc = 1000 * 60 * 60;
+        // every minute, so the date flips close to midnight (#143)
+        const inc = 1000 * 60;
         // Delay the first run slightly to ensure the DOM is ready.
         setTimeout(() => self._runDate(), 50);
         this._dateInterval = setInterval(function() {
@@ -107,6 +116,17 @@ class SidebarCard extends LitElement {
 
       this._updateActiveMenu();
     }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    // a replaced dashboard must not keep its timers and listeners alive
+    window.removeEventListener('location-changed', this._boundLocationChange);
+    window.removeEventListener('resize', this._boundResize, true);
+    clearInterval(this._clockInterval);
+    clearInterval(this._dateInterval);
+    this._clockInterval = null;
+    this._dateInterval = null;
+  }
 
   /* **************************************** *
    *   Element's HTML renderer (lit-element)  *
@@ -276,12 +296,10 @@ class SidebarCard extends LitElement {
     this.shadowRoot.querySelector('.date').textContent = now.format(this.dateFormat);
   }
 
-  updateSidebarSize(root) {
+  updateSidebarSize() {
     const sidebarInner = this.shadowRoot.querySelector('.sidebar-inner');
-    const header = root.shadowRoot.querySelector('ch-header') || root.shadowRoot.querySelector('app-header');
-    const offParam = getParameterByName('sidebarOff');
-    let headerHeightPx = getHeaderHeightPx();
-    
+    const headerHeightPx = getHeaderHeightPx();
+
     if (sidebarInner) {
       sidebarInner.style.width = this.offsetWidth + 'px';
       if(this.config.hideTopMenu) {
@@ -296,81 +314,46 @@ class SidebarCard extends LitElement {
 
   firstUpdated() {
     provideHass(this);
-    let root = getRoot();
-
-    // The clock and date interval logic is now moved to connectedCallback()
-    // to handle reloads correctly. This section can be removed.
-    /*
-    const self = this;
-    if (this.clock || this.digitalClock) {
-      const inc = 1000;
-      self._runClock();
-      this._clockInterval = setInterval(function() {
-        self._runClock();
-      }, inc);
-    }
-    if (this.date) {
-      const inc = 1000 * 60 * 60;
-      self._runDate();
-      this._dateInterval = setInterval(function() {
-        self._runDate();
-      }, inc);
-    }
-    */
-   
-    const self = this; // self is needed for the setTimeouts below
-    
-    setTimeout(() => {
-      self.updateSidebarSize(root);
-      self._updateActiveMenu();
-    }, 50); 
 
     setTimeout(() => {
-      self.updateSidebarSize(root);
+      this.updateSidebarSize();
+      this._updateActiveMenu();
+    }, 50);
+
+    setTimeout(() => {
+      this.updateSidebarSize();
     }, 350);
 
-    window.addEventListener(
-      'resize',
-      function() {
-        setTimeout(() => {
-          self.updateSidebarSize(root);
-        }, 1);
-      },
-      true
-    );
-
     if (this.bottomCard) {
-      setTimeout(() => {
-        var card = {
-          type: this.bottomCard.type,
-        };
-        card = Object.assign({}, card, this.bottomCard.cardOptions);
+      setTimeout(async () => {
+        const card = Object.assign({ type: this.bottomCard.type }, this.bottomCard.cardOptions);
         log2console('firstUpdated', 'Bottom card: ', card);
-        if (!card || typeof card !== 'object' || !card.type) {
+        if (!card.type) {
           error2console('firstUpdated', 'Bottom card config error!');
         } else {
-          let tag = card.type;
-          if (tag.startsWith(this.CUSTOM_TYPE_PREFIX)) tag = tag.substr(this.CUSTOM_TYPE_PREFIX.length);
-          else tag = `hui-${tag}-card`;
-
-          const cardElement = document.createElement(tag);
-          cardElement.setConfig(card);
+          // hui-card loads built-in cards on demand and waits for custom cards to be defined,
+          // a bare document.createElement() often had no setConfig yet (#90, #146, #147)
+          await customElements.whenDefined('hui-card');
+          const cardElement: any = document.createElement('hui-card');
+          cardElement.config = card;
           cardElement.hass = hass();
 
-          var bottomSection = this.shadowRoot.querySelector('.bottom');
+          const bottomSection = this.shadowRoot.querySelector('.bottom');
           bottomSection.appendChild(cardElement);
           provideHass(cardElement);
 
           if (this.bottomCard.cardStyle && this.bottomCard.cardStyle != '') {
-            let style = this.bottomCard.cardStyle;
+            const style = this.bottomCard.cardStyle;
             let itterations = 0;
-            let interval = setInterval(function() {
-              if (cardElement && cardElement.shadowRoot) {
+            const interval = setInterval(function() {
+              // the actual card is the child of hui-card; skip the placeholder shown while it loads
+              const innerCard = cardElement.firstElementChild;
+              if (innerCard && innerCard.shadowRoot && innerCard.localName !== 'hui-error-card') {
                 window.clearInterval(interval);
-                var styleElement = document.createElement('style');
+                const styleElement = document.createElement('style');
                 styleElement.innerHTML = style;
-                cardElement.shadowRoot.appendChild(styleElement);
-              } else if (++itterations === 10) {
+                innerCard.shadowRoot.appendChild(styleElement);
+              } else if (++itterations === 50) {
                 window.clearInterval(interval);
               }
             }, 100);
@@ -523,7 +506,8 @@ class SidebarCard extends LitElement {
         null,
         (res) => {
           const regex = /<(?:li|div)(?:\s+(?:class|id)\s*=\s*"([^"]*)")*\s*>([^<]*)<\/(?:li|div)>/g
-          this.templateLines = res.match(regex).map( (val) => val);
+          // a template that renders no <li>/<div> must not throw (#108)
+          this.templateLines = res.match(regex) || [];
           this.requestUpdate();
         },
         {
