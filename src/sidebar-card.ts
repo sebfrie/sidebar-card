@@ -917,7 +917,8 @@ function setHassSidebarHidden(hidden: boolean) {
       style.id = 'sidebarCardHideHassSidebar';
       // the empty sidebar column still draws its border line
       style.textContent = '.sidebar-shell { display: none !important; }';
-      drawerRoot.appendChild(style);
+      // prepend: Lit clears everything after its own marker when the drawer switches to/from modal
+      drawerRoot.prepend(style);
     } else if (!hidden && shellStyle) {
       shellStyle.remove();
     }
