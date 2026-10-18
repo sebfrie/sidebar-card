@@ -775,21 +775,19 @@ function createCSS(sidebarConfig: any, width: number) {
 // ##########################################################################################
 
 function getLovelace() {
-  let root: any = document.querySelector('home-assistant');
-  root = root && root.shadowRoot;
-  root = root && root.querySelector('home-assistant-main');
-  root = root && root.shadowRoot;
-  root = root && root.querySelector('ha-drawer partial-panel-resolver');
-  root = root && root.shadowRoot || root;
-  root = root && root.querySelector('ha-panel-lovelace');
-  root = root && root.shadowRoot;
-  root = root && root.querySelector('hui-root');
-  if (root) {
+  const root = getRoot();
+  if (root && root.lovelace) {
       const ll = root.lovelace;
       ll.current_view = root.___curView;
       return ll;
   }
   return null;
+}
+
+// true when the shown dashboard is the one in the address bar, not the one we are navigating away from
+function isCurrentDashboard(lovelace: any) {
+  if (lovelace.urlPath === undefined) return true;
+  return (lovelace.urlPath ?? 'lovelace') === window.location.pathname.split('/')[1];
 }
 
 async function log2console(method: string, message: string, object?: any) {
@@ -1019,24 +1017,9 @@ function subscribeEvents(appLayout: any, sidebarConfig: any, contentContainer: a
 }
 
 function watchLocationChange() {
-  setTimeout(() => {
-    window.addEventListener('location-changed', () => {
-      const root = getRoot();
-      // location changed before finishing dom rendering — bail if root/shadowRoot/layout aren't ready
-      if (!root || !root.shadowRoot) return;
-      const appLayout = root.shadowRoot.querySelector('div');
-      if (!appLayout) return;
-      const customSidebarWrapper = appLayout.querySelector('#customSidebarWrapper');
-      if (!customSidebarWrapper) {
-        buildSidebar();
-      } else {
-        const customSidebar = customSidebarWrapper.querySelector('#customSidebar');
-        if (!customSidebar) {
-          buildSidebar();
-        }
-      }
-    });
-  }, 1000);
+  // The new panel is not rendered yet when location-changed fires, so checking the DOM here missed
+  // dashboards opened from another page (#112, #137). buildSidebar waits for it and skips built ones.
+  window.addEventListener('location-changed', () => buildSidebar());
 }
 
 // build the custom sidebar card
@@ -1058,7 +1041,8 @@ async function getConfig() {
   let lovelace: any;
   while (!lovelace) {
     lovelace = getLovelace();
-    if (!lovelace) {
+    if (!lovelace || !isCurrentDashboard(lovelace)) {
+      lovelace = null;
       await sleep(500);
     }
   }
