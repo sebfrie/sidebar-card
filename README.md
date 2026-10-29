@@ -72,10 +72,11 @@ Under `sidebar:` you can configure the following options:
 | `digitalClockWithSeconds`, `twelveHourVersion`, `period`, `seconds`, `timeFormat`, `clockSize`, `analogClockSize` | | optional | | Older clock options, still read when there is no `elements` list; the editor converts them |
 | `showRight` | boolean | optional | `false` | If showRight is enabled the sidebar will be shown on the right side of the screen |
 | `viewMenu` | boolean | optional | `false` | Show one menu item per view of the dashboard, with the view's title and icon. Subviews and views hidden for the user are left out. New views show up on their own |
-| `viewMenuExclude` | list | optional | | Paths (or indexes) of views to leave out of `viewMenu` |
+| `viewMenuExclude` | list | optional | | Paths (or indexes) of views to leave out of `viewMenu`; the editor shows every view with an eye to switch it |
 | `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want. Shown below the views of `viewMenu` |
 | `menuIcons` | string | optional | `left` | `left`, `right` or `none`: where menu icons are shown |
-| `menuFontSize` | number | optional | `18` | Font size of the menu in px |
+| `menuFontSize` | number | optional | `18` | Font size of the menu in px (up to 40); the spacing of the items grows with it |
+| `menuPosition` | string | optional | `top` | `top` (right below the clocks), `center` or `bottom` of the free space |
 | `menuItemSpacing` | number | optional | `4` | Space between menu items in px |
 | `bottomButtons` | list | optional | *see info below* | Entities and buttons pinned to the bottom of the sidebar |
 | `bottomButtonsLayout` | string | optional | `row` | `row` (icon bar) or `list` (icon, name and state) |
@@ -116,7 +117,7 @@ until the page is reloaded. For example: `https://myhomeassistant.duckdns.org/lo
 | `analogClock` | `seconds` (second hand, default `true`), `size` (px, default `220`, never wider than the sidebar), `timeZone` |
 | `date` | `format` (moment.js, default `dddd, D. MMMM` in German, `dddd, MMMM D` otherwise), `size` (px, default `22`), `timeZone` |
 
-`timeZone` is `local` (this device, default), `server` (the time zone of Home Assistant) or any IANA name such as `America/New_York`.
+`timeZone` is empty for the time zone of Home Assistant (default), `local` for this device's or any IANA name such as `America/New_York`.
 
 ```yaml
 sidebar:
@@ -290,6 +291,7 @@ sidebar:
 
 #### Bottom Custom Card
 
+`bottomCard` shows any Home Assistant card at the very bottom of the sidebar, below the bottom buttons.
 To start, add `bottomCard` to your sidebar config.
 `bottomCard` has 3 parts.
 

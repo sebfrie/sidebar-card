@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.5.0';
+const SIDEBAR_CARD_VERSION = '0.6.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -60,7 +60,6 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_blur: 'Blur strength',
     label_timeFormat: 'Time format',
     label_viewMenu: 'Show the views of this dashboard',
-    label_viewMenuExclude: 'Hide these views',
     label_sidebarMenu: 'Additional menu items',
     label_menuIcons: 'Menu icons',
     label_menuFontSize: 'Menu font size',
@@ -115,6 +114,19 @@ const STRINGS: Record<string, Record<string, string>> = {
     opt_tz_server: 'Home Assistant',
     reset_default: 'Reset to default',
     label_menuItemSpacing: 'Space between menu items',
+    label_menuPosition: 'Menu position',
+    label_elements: '',
+    opt_pos_top: 'Top (right below the clocks)',
+    opt_pos_center: 'Middle',
+    opt_pos_bottom: 'Bottom',
+    helper_timeZone: 'Empty: the time zone of Home Assistant{zone}',
+    opt_color_theme: 'From the theme',
+    new_menu_item: 'New menu item',
+    new_button: 'New button',
+    show_view: 'Show in the menu',
+    hide_view: 'Hide from the menu',
+    helper_bottomCard:
+      'Any Home Assistant card at the very bottom of the sidebar, below the buttons. type: the card type, cardOptions: the settings of the card, cardStyle: (optional) CSS for the card. Example: type: tile, cardOptions: {entity: sensor.outside}',
     label_shadow: 'Shadow',
     label_shadowSize: 'Shadow size',
     helper_shadow: 'Casts a shadow onto the dashboard next to the sidebar.',
@@ -159,7 +171,6 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_blur: 'Stärke der Unschärfe',
     label_timeFormat: 'Zeitformat',
     label_viewMenu: 'Views dieses Dashboards anzeigen',
-    label_viewMenuExclude: 'Diese Views ausblenden',
     label_sidebarMenu: 'Zusätzliche Menüeinträge',
     label_menuIcons: 'Menü-Icons',
     label_menuFontSize: 'Schriftgröße Menü',
@@ -214,6 +225,19 @@ const STRINGS: Record<string, Record<string, string>> = {
     opt_tz_server: 'Home Assistant',
     reset_default: 'Auf Standard zurücksetzen',
     label_menuItemSpacing: 'Abstand zwischen Menüeinträgen',
+    label_menuPosition: 'Position des Menüs',
+    label_elements: '',
+    opt_pos_top: 'Oben (direkt unter Uhr und Datum)',
+    opt_pos_center: 'Mitte',
+    opt_pos_bottom: 'Unten',
+    helper_timeZone: 'Leer: Zeitzone von Home Assistant{zone}',
+    opt_color_theme: 'Aus dem Theme',
+    new_menu_item: 'Neuer Menüeintrag',
+    new_button: 'Neuer Button',
+    show_view: 'Im Menü anzeigen',
+    hide_view: 'Im Menü ausblenden',
+    helper_bottomCard:
+      'Eine beliebige Home-Assistant-Karte ganz unten in der Seitenleiste, unter den Buttons. type: der Kartentyp, cardOptions: die Einstellungen der Karte, cardStyle: (optional) CSS für die Karte. Beispiel: type: tile, cardOptions: {entity: sensor.aussen}',
     label_shadow: 'Schatten',
     label_shadowSize: 'Stärke des Schattens',
     helper_shadow: 'Wirft einen Schatten auf das Dashboard neben der Seitenleiste.',
@@ -322,15 +346,15 @@ function formatTime(date: Date, format: string, seconds: boolean) {
 
 // Clocks and dates at the top of the sidebar, in the order of the list; each type has its own options
 const ELEMENT_TYPES: Record<string, { icon: string; defaults: Record<string, any> }> = {
-  digitalClock: { icon: 'mdi:clock-digital', defaults: { timeFormat: '24', seconds: false, size: 60, timeZone: 'local' } },
-  analogClock: { icon: 'mdi:clock-outline', defaults: { seconds: true, size: 220, timeZone: 'local' } },
-  date: { icon: 'mdi:calendar-today', defaults: { size: 22, timeZone: 'local' } },
+  digitalClock: { icon: 'mdi:clock-digital', defaults: { timeFormat: '24', seconds: false, size: 60, timeZone: '' } },
+  analogClock: { icon: 'mdi:clock-outline', defaults: { seconds: true, size: 220, timeZone: '' } },
+  date: { icon: 'mdi:calendar-today', defaults: { size: 22, timeZone: '' } },
 };
 
-// 'local' is this device's time zone, 'server' the one of Home Assistant, anything else an IANA name
+// empty is the time zone of Home Assistant, 'local' this device's, anything else an IANA name
 function resolveTimeZone(timeZone: string, hassObj: any) {
-  if (!timeZone || timeZone === 'local') return undefined;
-  if (timeZone === 'server') return hassObj && hassObj.config ? hassObj.config.time_zone : undefined;
+  if (timeZone === 'local') return undefined;
+  if (!timeZone || timeZone === 'server') return hassObj && hassObj.config ? hassObj.config.time_zone || undefined : undefined;
   return timeZone;
 }
 
@@ -433,7 +457,7 @@ const THEME_COLORS = [
   'white',
 ];
 function cssColor(color: any) {
-  if (color === undefined || color === null || color === '') return undefined;
+  if (color === undefined || color === null || color === '' || color === 'theme') return undefined;
   return THEME_COLORS.includes(color) ? `var(--${color}-color)` : String(color);
 }
 
@@ -599,20 +623,22 @@ class SidebarCard extends LitElement {
                 <h1 class="title">${c.title}</h1>
               `
             : ''}
-          ${items.length > 0
-            ? html`
-                <ul class="sidebarMenu icons-${iconPosition}">
-                  ${items.map((item) => this._renderMenuItem(item, iconPosition))}
-                </ul>
-              `
-            : ''}
-          ${c.template
-            ? html`
-                <ul class="template">
-                  ${this._templateNodes}
-                </ul>
-              `
-            : ''}
+          <div class="menu-block ${['center', 'bottom'].includes(c.menuPosition) ? c.menuPosition : 'top'}">
+            ${items.length > 0
+              ? html`
+                  <ul class="sidebarMenu icons-${iconPosition}">
+                    ${items.map((item) => this._renderMenuItem(item, iconPosition))}
+                  </ul>
+                `
+              : ''}
+            ${c.template
+              ? html`
+                  <ul class="template">
+                    ${this._templateNodes}
+                  </ul>
+                `
+              : ''}
+          </div>
         </div>
         ${showFooter
           ? html`
@@ -1170,12 +1196,21 @@ class SidebarCard extends LitElement {
         z-index: 3;
       }
       .sidebar-main {
+        display: flex;
+        flex-direction: column;
         flex: 1 1 auto;
         min-height: 0;
         overflow: hidden auto;
         padding: var(--sb-padding);
         scrollbar-width: thin;
         container-type: inline-size;
+      }
+      /* menuPosition: right after the clocks, in the middle of the free space or at its bottom */
+      .menu-block.center {
+        margin-block: auto;
+      }
+      .menu-block.bottom {
+        margin-top: auto;
       }
       .sidebar-footer {
         flex: 0 0 auto;
@@ -1249,17 +1284,18 @@ class SidebarCard extends LitElement {
         border-top: 1px solid var(--sb-divider);
         border-bottom: 1px solid var(--sb-divider);
       }
+      /* spacing in em, so large font sizes get room as well */
       .sidebarMenu li {
         position: relative;
         display: flex;
         align-items: center;
-        gap: 14px;
+        gap: 0.75em;
         margin: 0;
-        padding: 10px 16px;
+        padding: 0.5em 0.85em;
         border-radius: var(--sidebar-item-radius, 12px);
         color: var(--sb-text);
         font-size: var(--sidebar-menu-font-size, 18px);
-        line-height: 24px;
+        line-height: 1.35;
         font-weight: 400;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
@@ -1271,6 +1307,7 @@ class SidebarCard extends LitElement {
       .sidebarMenu li span {
         flex: 1 1 auto;
         min-width: 0;
+        padding-block: 0.1em;
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
@@ -1278,6 +1315,7 @@ class SidebarCard extends LitElement {
       .sidebarMenu li ha-icon {
         flex: none;
         color: var(--sb-icon);
+        --mdc-icon-size: max(24px, 1.3em);
       }
       .sidebarMenu li::before {
         content: '';
@@ -1500,6 +1538,7 @@ customElements.define('sidebar-card', SidebarCard);
 // Defaults the editor shows in its fields; values equal to them are not stored
 const EDITOR_DEFAULTS: Record<string, any> = {
   menuIcons: 'left',
+  menuPosition: 'top',
   bottomButtonsLayout: 'row',
   widthUnit: '%',
   menuFontSize: 18,
@@ -1512,6 +1551,7 @@ const DEFAULT_WIDTH_PERCENT = 25;
 const DEFAULT_WIDTH_PX = 300;
 // switches that are off by default and not stored when off
 const OFF_BY_DEFAULT = ['viewMenu', 'bottomButtonsShowName', 'showRight', 'shadow', 'hideTopMenu', 'showTopMenuOnMobile', 'hideHassSidebar', 'dockHassSidebar', 'debug'];
+const COLOR_KEYS = ['background', 'textColor', 'iconColor', 'accentColor', 'dividerColor'];
 const CUSTOM_DATE_FORMAT = 'custom';
 const WIDTH_KEYS = ['desktop', 'tablet', 'mobile'];
 // older keys the elements list replaces
@@ -1534,6 +1574,15 @@ function isEmpty(value: any) {
   if (Array.isArray(value)) return value.length === 0;
   if (typeof value === 'object') return Object.keys(value).length === 0;
   return false;
+}
+
+// drops empty fields of list items (menu items, buttons)
+function compactItem(item: any) {
+  const result: any = {};
+  Object.keys(item || {}).forEach((key) => {
+    if (!isEmpty(item[key])) result[key] = item[key];
+  });
+  return result;
 }
 
 // one element as the form shows it: every default filled in, the date format split into preset and custom text
@@ -1598,6 +1647,8 @@ function toFormData(config: any, hassObj: any) {
   data.elements = elementsOf(source).map((element) => toElementFormData(element, language));
   LEGACY_KEYS.forEach((key) => delete data[key]);
   data.glass = isGlass(source);
+  data.sidebarMenu = Array.isArray(data.sidebarMenu) ? data.sidebarMenu.filter((item) => item && typeof item === 'object') : [];
+  data.bottomButtons = Array.isArray(data.bottomButtons) ? data.bottomButtons.filter((item) => item && typeof item === 'object') : [];
 
   Object.keys(EDITOR_DEFAULTS).forEach((key) => {
     if (isEmpty(data[key])) data[key] = EDITOR_DEFAULTS[key];
@@ -1611,11 +1662,15 @@ function fromFormData(formData: any, hassObj: any) {
   const data = Object.assign({}, formData);
   const language = languageOf(hassObj);
   data.elements = (data.elements || []).map((element) => fromElementFormData(element, language));
+  data.sidebarMenu = (data.sidebarMenu || []).map(compactItem).filter((item) => !isEmpty(item));
+  data.bottomButtons = (data.bottomButtons || []).map(compactItem).filter((item) => !isEmpty(item));
   if (!data.glass) {
     delete data.glass;
     delete data.blur;
   }
   if (!data.shadow) delete data.shadowSize;
+  // "from the theme" is the color picker's default
+  COLOR_KEYS.forEach((key) => data[key] === 'theme' && delete data[key]);
 
   const unit = data.widthUnit || '%';
   if (data.width && typeof data.width === 'object') {
@@ -1663,6 +1718,26 @@ const slider = (name: string, min: number, max: number, step: number, unit: stri
 const dropdown = (name: string, options: any[], extra: any = {}) =>
   Object.assign({ name, required: true, selector: { select: { mode: 'dropdown', options } } }, extra);
 
+// small pictures for HA's select boxes, in a light and a dark variant
+function svgImage(body: (line: string, fill: string) => string) {
+  const make = (line: string, fill: string) =>
+    'data:image/svg+xml,' + encodeURIComponent(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 96 56">${body(line, fill)}</svg>`);
+  return { src: make('#9e9e9e', '#c8c8c8'), src_dark: make('#8a8a8a', '#5c5c5c') };
+}
+
+const ICON_BAR_IMAGE = svgImage(
+  (line, fill) =>
+    `<rect x="4" y="12" width="88" height="32" rx="7" fill="none" stroke="${line}" stroke-width="2"/>` +
+    [12, 38, 64].map((x) => `<rect x="${x}" y="18" width="20" height="20" rx="5" fill="${fill}"/><circle cx="${x + 10}" cy="28" r="4.5" fill="${line}"/>`).join(''),
+);
+const LIST_IMAGE = svgImage(
+  (line, fill) =>
+    `<rect x="4" y="4" width="88" height="48" rx="7" fill="none" stroke="${line}" stroke-width="2"/>` +
+    [16, 28, 40]
+      .map((y) => `<circle cx="16" cy="${y}" r="4" fill="${line}"/><rect x="26" y="${y - 2.5}" width="36" height="5" rx="2.5" fill="${fill}"/><rect x="68" y="${y - 2.5}" width="16" height="5" rx="2.5" fill="${fill}"/>`)
+      .join(''),
+);
+
 let timeZoneList: any[] | null = null;
 
 function timeZoneSelectOptions(hassObj: any) {
@@ -1674,17 +1749,17 @@ function timeZoneSelectOptions(hassObj: any) {
   } catch {
     // unknown
   }
-  const server = hassObj && hassObj.config ? hassObj.config.time_zone : '';
-  return [
-    { value: 'local', label: device ? `${t('opt_tz_local')} (${device.replace(/_/g, ' ')})` : t('opt_tz_local') },
-    { value: 'server', label: server ? `${t('opt_tz_server')} (${server.replace(/_/g, ' ')})` : t('opt_tz_server') },
-    ...timeZoneList,
-  ];
+  return [{ value: 'local', label: device ? `${t('opt_tz_local')} (${device.replace(/_/g, ' ')})` : t('opt_tz_local') }, ...timeZoneList];
 }
 
-// the time zone list is searchable and also takes names it does not know
+// searchable, takes names it does not know, and may stay empty: then the time zone of Home Assistant
 function timeZoneField(hassObj: any) {
-  return { name: 'timeZone', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: timeZoneSelectOptions(hassObj) } } };
+  const server = hassObj && hassObj.config && hassObj.config.time_zone ? ` (${String(hassObj.config.time_zone).replace(/_/g, ' ')})` : '';
+  return {
+    name: 'timeZone',
+    selector: { select: { mode: 'dropdown', custom_value: true, options: timeZoneSelectOptions(hassObj) } },
+    __helper: localize('helper_timeZone', hassObj).replace('{zone}', server),
+  };
 }
 
 function elementSchema(element: any, hassObj: any) {
@@ -1727,19 +1802,62 @@ function elementSchema(element: any, hassObj: any) {
   ];
 }
 
+function zoneSummary(element: any, hassObj: any) {
+  const timeZone = element.timeZone || '';
+  if (!timeZone) return '';
+  if (timeZone === 'local') return localize('opt_tz_local', hassObj);
+  if (timeZone === 'server') return localize('opt_tz_server', hassObj);
+  return timeZone
+    .split('/')
+    .pop()
+    .replace(/_/g, ' ');
+}
+
 function elementSummary(element: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
   const language = languageOf(hassObj);
-  const timeZone = element.timeZone && element.timeZone !== 'local' ? element.timeZone : '';
-  const now = zonedDate(new Date(), resolveTimeZone(timeZone, hassObj));
-  const zoneName = timeZone === 'server' ? t('opt_tz_server') : timeZone.split('/').pop().replace(/_/g, ' ');
-  const zone = timeZone ? ` · ${zoneName}` : '';
-  if (element.type === 'digitalClock') return `${formatTime(now, element.timeFormat, element.seconds)} · ${element.size} px${zone}`;
-  if (element.type === 'analogClock') return `${element.size} px · ${t(element.seconds ? 'with_second_hand' : 'without_second_hand')}${zone}`;
-  const format = element.formatPreset === CUSTOM_DATE_FORMAT ? element.format : element.formatPreset;
-  return `${moment(now)
-    .locale(language)
-    .format(format || datePresets(language)[0])} · ${element.size} px${zone}`;
+  const now = zonedDate(new Date(), resolveTimeZone(element.timeZone, hassObj));
+  const zone = zoneSummary(element, hassObj);
+  let text: string;
+  if (element.type === 'digitalClock') text = formatTime(now, element.timeFormat, element.seconds);
+  else if (element.type === 'analogClock') text = t(element.seconds ? 'with_second_hand' : 'without_second_hand');
+  else {
+    const format = element.formatPreset === CUSTOM_DATE_FORMAT ? element.format : element.formatPreset;
+    text = moment(now)
+      .locale(language)
+      .format(format || datePresets(language)[0]);
+  }
+  return zone ? `${text} · ${zone}` : text;
+}
+
+// keeps the dropdowns of a clock or date filled and copies a chosen preset into the custom field
+function normalizeElement(element: any, previous: any) {
+  ['timeFormat', 'formatPreset'].forEach((key) => {
+    if (key in previous && isEmpty(element[key])) element[key] = previous[key];
+  });
+  if (element.formatPreset !== previous.formatPreset && element.formatPreset !== CUSTOM_DATE_FORMAT) element.format = element.formatPreset;
+  return element;
+}
+
+function menuItemSchema(hassObj: any) {
+  const t = (key: string) => localize(key, hassObj);
+  return [
+    { name: 'name', selector: { text: {} }, __label: t('field_name') },
+    { name: 'icon', selector: { icon: {} }, __label: t('field_icon') },
+    { name: 'navigation_path', selector: { navigation: {} }, __label: t('field_navigation_path') },
+    { name: 'conditional', selector: { text: {} }, __label: t('field_conditional'), __helper: t('helper_conditional') },
+  ];
+}
+
+function buttonSchema(hassObj: any) {
+  const t = (key: string) => localize(key, hassObj);
+  return [
+    { name: 'entity', selector: { entity: {} }, __label: t('field_entity') },
+    { name: 'name', selector: { text: {} }, __label: t('field_name') },
+    { name: 'icon', selector: { icon: {} }, __label: t('field_icon') },
+    { name: 'tap_action', selector: { ui_action: {} }, __label: t('field_tap_action') },
+    { name: 'hold_action', selector: { ui_action: {} }, __label: t('field_hold_action') },
+  ];
 }
 
 // ha-form is loaded on demand by Home Assistant; the tile card editor pulls it in
@@ -1759,19 +1877,56 @@ async function loadHaForm() {
   await Promise.race([customElements.whenDefined('ha-form'), sleep(5000)]);
 }
 
+// the views a menu can show: no subviews
+function menuViews(lovelace: any) {
+  const views = lovelace && lovelace.config && Array.isArray(lovelace.config.views) ? lovelace.config.views : [];
+  return views
+    .map((view, index) => ({
+      value: view.path !== undefined && view.path !== null && view.path !== '' ? String(view.path) : String(index),
+      label: view.title || view.path || String(index + 1),
+      icon: view.icon || 'mdi:view-dashboard-outline',
+      subview: !!view.subview,
+    }))
+    .filter((view) => !view.subview);
+}
+
 function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
-  const views = (lovelace && lovelace.config && Array.isArray(lovelace.config.views) ? lovelace.config.views : []).map((view, index) => ({
-    value: view.path !== undefined && view.path !== null && view.path !== '' ? String(view.path) : String(index),
-    label: view.title || view.path || String(index + 1),
-  }));
-  // HA's own color picker: theme colors with a swatch, or any CSS color typed in
-  const color = (name: string) => ({ name, selector: { ui_color: {} } });
+  const views = menuViews(lovelace);
+  // HA's own color picker: theme colors with a swatch, or any CSS color typed in; shows the theme default when empty
+  const color = (name: string, themeColor: string) => ({
+    name,
+    selector: { ui_color: { default_color: 'theme', extra_options: [{ value: 'theme', label: t('opt_color_theme'), display_color: themeColor }] } },
+  });
   const px = data.widthUnit === 'px';
   const width = (name: string, extra: any = {}) =>
     px ? slider(name, 0, 600, 10, 'px', DEFAULT_WIDTH_PX, extra) : slider(name, 0, 50, 1, '%', DEFAULT_WIDTH_PERCENT, extra);
+  const language = languageOf(hassObj);
 
   return [
+    {
+      type: 'expandable',
+      name: '',
+      flatten: true,
+      title: t('section_header'),
+      icon: 'mdi:clock-outline',
+      expanded: true,
+      schema: [
+        {
+          type: 'sidebar_list',
+          name: 'elements',
+          addTypes: Object.keys(ELEMENT_TYPES).map((type) => ({ type, icon: ELEMENT_TYPES[type].icon, label: t('element_' + type) })),
+          newItem: (type: string) => toElementFormData({ type }, language),
+          itemIcon: (item: any) => ELEMENT_TYPES[item.type].icon,
+          itemName: (item: any) => t('element_' + item.type),
+          itemSummary: (item: any) => elementSummary(item, hassObj),
+          itemSchema: (item: any) => elementSchema(item, hassObj),
+          itemSchemaKey: (item: any) => [item.type, item.formatPreset === CUSTOM_DATE_FORMAT].join('|'),
+          normalizeItem: normalizeElement,
+          emptyText: t('no_elements'),
+        },
+      ],
+    },
     {
       type: 'expandable',
       name: '',
@@ -1780,29 +1935,29 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
       icon: 'mdi:menu',
       schema: [
         { name: 'viewMenu', selector: { boolean: {} } },
-        ...(data.viewMenu && views.length > 0 ? [{ name: 'viewMenuExclude', selector: { select: { multiple: true, mode: 'list', options: views } } }] : []),
+        ...(data.viewMenu && views.length > 0
+          ? [{ type: 'sidebar_views', name: 'viewMenuExclude', views, base: '/' + ((lovelace && lovelace.urlPath) || window.location.pathname.split('/')[1]) }]
+          : []),
         {
+          type: 'sidebar_list',
           name: 'sidebarMenu',
-          selector: {
-            object: {
-              multiple: true,
-              label_field: 'name',
-              description_field: 'navigation_path',
-              fields: {
-                name: { label: t('field_name'), required: true, selector: { text: {} } },
-                icon: { label: t('field_icon'), selector: { icon: {} } },
-                navigation_path: { label: t('field_navigation_path'), selector: { navigation: {} } },
-                conditional: { label: t('field_conditional'), selector: { text: {} } },
-              },
-            },
-          },
+          newItem: () => ({ name: '', icon: '', navigation_path: '' }),
+          itemIcon: (item: any) => item.icon || 'mdi:link-variant',
+          itemName: (item: any) => item.name || t('new_menu_item'),
+          itemSummary: (item: any) => item.navigation_path || item.url_path || item.action || '',
+          itemSchema: () => menuItemSchema(hassObj),
         },
+        dropdown('menuPosition', [
+          { value: 'top', label: t('opt_pos_top') },
+          { value: 'center', label: t('opt_pos_center') },
+          { value: 'bottom', label: t('opt_pos_bottom') },
+        ]),
         dropdown('menuIcons', [
           { value: 'left', label: t('opt_left') },
           { value: 'right', label: t('opt_right') },
           { value: 'none', label: t('opt_none') },
         ]),
-        slider('menuFontSize', 12, 28, 1, 'px', EDITOR_DEFAULTS.menuFontSize),
+        slider('menuFontSize', 12, 40, 1, 'px', EDITOR_DEFAULTS.menuFontSize),
         slider('menuItemSpacing', 0, 24, 1, 'px', EDITOR_DEFAULTS.menuItemSpacing),
         { name: 'template', selector: { template: {} }, __helper: t('helper_template') },
       ],
@@ -1815,28 +1970,34 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
       icon: 'mdi:dock-bottom',
       schema: [
         {
+          type: 'sidebar_list',
           name: 'bottomButtons',
+          newItem: () => ({}),
+          itemIcon: (item: any) => item.icon || 'mdi:gesture-tap-button',
+          itemEntity: (item: any) => item.entity,
+          itemName: (item: any) => {
+            const stateObj = item.entity && hassObj && hassObj.states ? hassObj.states[item.entity] : undefined;
+            return item.name || (stateObj ? stateObj.attributes.friendly_name : item.entity) || t('new_button');
+          },
+          itemSummary: (item: any) => (item.entity && (item.name || (hassObj && hassObj.states && hassObj.states[item.entity])) ? item.entity : ''),
+          itemSchema: () => buttonSchema(hassObj),
+        },
+        {
+          name: 'bottomButtonsLayout',
+          required: true,
           selector: {
-            object: {
-              multiple: true,
-              label_field: 'name',
-              description_field: 'entity',
-              fields: {
-                entity: { label: t('field_entity'), selector: { entity: {} } },
-                name: { label: t('field_name'), selector: { text: {} } },
-                icon: { label: t('field_icon'), selector: { icon: {} } },
-                tap_action: { label: t('field_tap_action'), selector: { ui_action: {} } },
-                hold_action: { label: t('field_hold_action'), selector: { ui_action: {} } },
-              },
+            select: {
+              mode: 'box',
+              box_max_columns: 2,
+              options: [
+                { value: 'row', label: t('opt_row'), image: ICON_BAR_IMAGE },
+                { value: 'list', label: t('opt_list'), image: LIST_IMAGE },
+              ],
             },
           },
         },
-        dropdown('bottomButtonsLayout', [
-          { value: 'row', label: t('opt_row') },
-          { value: 'list', label: t('opt_list') },
-        ]),
         ...(data.bottomButtonsLayout !== 'list' ? [{ name: 'bottomButtonsShowName', selector: { boolean: {} } }] : []),
-        { name: 'bottomCard', selector: { object: {} } },
+        { name: 'bottomCard', selector: { object: {} }, __helper: t('helper_bottomCard') },
       ],
     },
     {
@@ -1883,7 +2044,13 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
         {
           type: 'grid',
           name: '',
-          schema: [color('background'), color('textColor'), color('iconColor'), color('accentColor'), color('dividerColor')],
+          schema: [
+            color('background', 'var(--card-background-color, #fff)'),
+            color('textColor', 'var(--primary-text-color, #212121)'),
+            color('iconColor', 'var(--secondary-text-color, #727272)'),
+            color('accentColor', 'var(--primary-color, #03a9f4)'),
+            color('dividerColor', 'var(--divider-color, #e0e0e0)'),
+          ],
         },
         { name: 'glass', selector: { boolean: {} }, __helper: t('helper_glass') },
         ...(data.glass ? [slider('blur', 2, 30, 1, 'px', GLASS_BLUR)] : []),
@@ -1908,6 +2075,436 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
     },
   ];
 }
+
+// Styles shared by the list fields of the editor (clocks and dates, menu items, buttons, views)
+const listStyles = css`
+  :host {
+    display: block;
+  }
+  .label {
+    margin-bottom: 8px;
+    color: var(--primary-text-color, #212121);
+  }
+  .items {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+  }
+  .item {
+    position: relative;
+    border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+    border-radius: var(--ha-border-radius-md, 8px);
+    background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
+  }
+  .items.sorting .item:not(.dragging) {
+    transition: transform 0.15s ease;
+  }
+  .item.dragging {
+    z-index: 1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  }
+  .item.off .item-icon,
+  .item.off .info {
+    opacity: 0.45;
+  }
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    min-height: 56px;
+    padding: 0 4px 0 12px;
+  }
+  .handle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    align-self: stretch;
+    width: 32px;
+    margin-left: -8px;
+    color: var(--secondary-text-color, #727272);
+    cursor: move;
+    touch-action: none;
+  }
+  .item-icon {
+    display: flex;
+    flex: none;
+    color: var(--secondary-text-color, #727272);
+  }
+  .info {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    padding: 8px 4px 8px 12px;
+    cursor: pointer;
+  }
+  .name {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--primary-text-color, #212121);
+    font-size: var(--ha-font-size-m, 14px);
+    line-height: 20px;
+  }
+  .summary {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+    color: var(--secondary-text-color, #727272);
+    font-size: var(--ha-font-size-s, 12px);
+    line-height: 16px;
+  }
+  button {
+    font: inherit;
+    cursor: pointer;
+  }
+  button.icon {
+    display: flex;
+    flex: none;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    border: none;
+    border-radius: 50%;
+    background: transparent;
+    color: var(--secondary-text-color, #727272);
+  }
+  button.icon:hover {
+    background: rgba(127, 127, 127, 0.12);
+  }
+  .item-form {
+    padding: 8px 16px 16px;
+    border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+  }
+  ha-form {
+    display: block;
+  }
+  .hint {
+    margin: 0 0 8px;
+    color: var(--secondary-text-color, #727272);
+    font-size: var(--ha-font-size-m, 14px);
+  }
+  .add-menu {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 12px;
+  }
+  .add-option,
+  .add-button {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    height: 40px;
+    padding: 0 16px 0 12px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .add-option {
+    border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+    background: transparent;
+    color: var(--primary-text-color, #212121);
+  }
+  .add-option ha-icon {
+    color: var(--secondary-text-color, #727272);
+  }
+  .add-button {
+    margin-top: 12px;
+    border: none;
+    background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.12);
+    color: var(--primary-color, #03a9f4);
+  }
+`;
+
+// A list for ha-form ("type: sidebar_list"): add with a button, drag by the handle, open an entry to change it.
+// The schema brings the parts that differ: newItem, itemIcon, itemName, itemSummary, itemSchema, addTypes, ...
+class SidebarListField extends LitElement {
+  hass: any;
+  schema: any;
+  data: any;
+  label = '';
+  computeLabel: any;
+  computeHelper: any;
+  _expanded = -1;
+  _addOpen = false;
+  _schemas = new Map<string, any[]>();
+
+  static get properties() {
+    return {
+      hass: { attribute: false },
+      schema: { attribute: false },
+      data: { attribute: false },
+      label: { attribute: false },
+      computeLabel: { attribute: false },
+      computeHelper: { attribute: false },
+      _expanded: { attribute: false },
+      _addOpen: { attribute: false },
+    };
+  }
+
+  get _items(): any[] {
+    return Array.isArray(this.data) ? this.data : [];
+  }
+
+  _itemSchema(item: any) {
+    const s = this.schema;
+    const key = s.itemSchemaKey ? s.itemSchemaKey(item) : 'item';
+    if (!this._schemas.has(key)) this._schemas.set(key, s.itemSchema(item));
+    return this._schemas.get(key);
+  }
+
+  render() {
+    const s = this.schema || {};
+    const t = (key: string) => localize(key, this.hass);
+    const items = this._items;
+    return html`
+      ${this.label
+        ? html`
+            <div class="label">${this.label}</div>
+          `
+        : ''}
+      <div class="items">${items.map((item, index) => this._renderItem(item, index))}</div>
+      ${items.length === 0 && s.emptyText
+        ? html`
+            <p class="hint">${s.emptyText}</p>
+          `
+        : ''}
+      ${s.addTypes && this._addOpen
+        ? html`
+            <div class="add-menu">
+              ${s.addTypes.map(
+                (option) => html`
+                  <button class="add-option" @click=${() => this._add(option.type)}>
+                    <ha-icon .icon=${option.icon}></ha-icon>
+                    <span>${option.label}</span>
+                  </button>
+                `,
+              )}
+            </div>
+          `
+        : ''}
+      <button class="add-button" @click=${() => (s.addTypes ? (this._addOpen = !this._addOpen) : this._add())}>
+        <ha-icon .icon=${this._addOpen ? 'mdi:close' : 'mdi:plus'}></ha-icon>
+        <span>${this._addOpen ? t('cancel') : t('add_element')}</span>
+      </button>
+    `;
+  }
+
+  _renderItem(item: any, index: number) {
+    const s = this.schema;
+    const t = (key: string) => localize(key, this.hass);
+    const expanded = this._expanded === index;
+    const entity = s.itemEntity ? s.itemEntity(item) : undefined;
+    const stateObj = entity && this.hass && this.hass.states ? this.hass.states[entity] : undefined;
+    const summary = s.itemSummary ? s.itemSummary(item) : '';
+    return html`
+      <div class="item${expanded ? ' expanded' : ''}">
+        <div class="row">
+          <span class="handle" title="${t('move_element')}" @pointerdown=${(ev) => this._dragStart(ev, index)}>
+            <ha-icon icon="mdi:drag-horizontal-variant"></ha-icon>
+          </span>
+          <span class="item-icon">
+            ${stateObj && customElements.get('ha-state-icon')
+              ? html`
+                  <ha-state-icon .hass=${this.hass} .stateObj=${stateObj} .icon=${item.icon}></ha-state-icon>
+                `
+              : html`
+                  <ha-icon .icon=${s.itemIcon(item)}></ha-icon>
+                `}
+          </span>
+          <div class="info" @click=${() => this._toggle(index)}>
+            <span class="name">${s.itemName(item)}</span>
+            ${summary
+              ? html`
+                  <span class="summary">${summary}</span>
+                `
+              : ''}
+          </div>
+          <button class="icon" title="${t('edit_element')}" @click=${() => this._toggle(index)}>
+            <ha-icon .icon=${expanded ? 'mdi:chevron-up' : 'mdi:pencil'}></ha-icon>
+          </button>
+          <button class="icon" title="${t('remove_element')}" @click=${() => this._remove(index)}>
+            <ha-icon icon="mdi:delete"></ha-icon>
+          </button>
+        </div>
+        ${expanded
+          ? html`
+              <div class="item-form">
+                <ha-form
+                  .hass=${this.hass}
+                  .data=${item}
+                  .schema=${this._itemSchema(item)}
+                  .computeLabel=${this.computeLabel}
+                  .computeHelper=${this.computeHelper}
+                  @value-changed=${(ev) => this._itemChanged(ev, index)}
+                ></ha-form>
+              </div>
+            `
+          : ''}
+      </div>
+    `;
+  }
+
+  _fire(items: any[]) {
+    this.dispatchEvent(new CustomEvent('value-changed', { detail: { value: items }, bubbles: true }));
+  }
+
+  _toggle(index: number) {
+    this._expanded = this._expanded === index ? -1 : index;
+  }
+
+  _add(type?: string) {
+    const items = [...this._items, this.schema.newItem(type)];
+    this._addOpen = false;
+    this._expanded = items.length - 1;
+    this._fire(items);
+  }
+
+  _remove(index: number) {
+    const items = [...this._items];
+    items.splice(index, 1);
+    if (this._expanded === index) this._expanded = -1;
+    else if (this._expanded > index) this._expanded -= 1;
+    this._fire(items);
+  }
+
+  _move(from: number, to: number) {
+    const items = [...this._items];
+    const [moved] = items.splice(from, 1);
+    items.splice(to, 0, moved);
+    if (this._expanded === from) this._expanded = to;
+    else if (this._expanded > from && this._expanded <= to) this._expanded -= 1;
+    else if (this._expanded < from && this._expanded >= to) this._expanded += 1;
+    this._fire(items);
+  }
+
+  _itemChanged(ev: any, index: number) {
+    ev.stopPropagation();
+    const items = [...this._items];
+    let item = Object.assign({}, ev.detail.value);
+    if (this.schema.normalizeItem) item = this.schema.normalizeItem(item, items[index]);
+    items[index] = item;
+    this._fire(items);
+  }
+
+  // pointer events work with mouse and touch; the other rows make room while one is dragged
+  _dragStart(ev: PointerEvent, index: number) {
+    const handle = ev.currentTarget as HTMLElement;
+    const list = this.shadowRoot && (this.shadowRoot as any).querySelector('.items');
+    const rows = list ? (Array.from(list.children) as HTMLElement[]) : [];
+    if (rows.length < 2) return;
+    ev.preventDefault();
+    const rects = rows.map((row) => row.getBoundingClientRect());
+    const dragged = rows[index];
+    const step = rects[index].height + 8;
+    const startY = ev.clientY;
+    let target = index;
+    list.classList.add('sorting');
+    dragged.classList.add('dragging');
+    handle.setPointerCapture(ev.pointerId);
+
+    const move = (moveEvent: PointerEvent) => {
+      const dy = moveEvent.clientY - startY;
+      dragged.style.transform = `translateY(${dy}px)`;
+      const center = rects[index].top + rects[index].height / 2 + dy;
+      target = index;
+      for (let i = index + 1; i < rects.length; i++) if (center > rects[i].top + rects[i].height / 2) target = i;
+      for (let i = index - 1; i >= 0; i--) if (center < rects[i].top + rects[i].height / 2) target = i;
+      rows.forEach((row, i) => {
+        if (i === index) return;
+        const shift = index < target && i > index && i <= target ? -step : index > target && i >= target && i < index ? step : 0;
+        row.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+    const end = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', end);
+      handle.removeEventListener('pointercancel', end);
+      list.classList.remove('sorting');
+      dragged.classList.remove('dragging');
+      rows.forEach((row) => (row.style.transform = ''));
+      if (target !== index) this._move(index, target);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+  }
+
+  static get styles() {
+    return listStyles;
+  }
+}
+
+if (!customElements.get('ha-form-sidebar_list')) customElements.define('ha-form-sidebar_list', SidebarListField);
+
+// The views of the dashboard for ha-form ("type: sidebar_views"), each with an eye to show or hide it in the menu.
+// The value is the list of hidden view paths; the views come with the schema, so added or deleted views show up at once.
+class SidebarViewsField extends LitElement {
+  hass: any;
+  schema: any;
+  data: any;
+
+  static get properties() {
+    return {
+      hass: { attribute: false },
+      schema: { attribute: false },
+      data: { attribute: false },
+    };
+  }
+
+  render() {
+    const t = (key: string) => localize(key, this.hass);
+    const hidden = Array.isArray(this.data) ? this.data.map(String) : [];
+    const views = (this.schema && this.schema.views) || [];
+    return html`
+      <div class="items">
+        ${views.map((view) => {
+          const off = hidden.includes(view.value);
+          return html`
+            <div class="item${off ? ' off' : ''}">
+              <div class="row">
+                <span class="item-icon"><ha-icon .icon=${view.icon}></ha-icon></span>
+                <div class="info">
+                  <span class="name">${view.label}</span>
+                  <span class="summary">${this.schema.base}/${view.value}</span>
+                </div>
+                <button class="icon" title="${t(off ? 'show_view' : 'hide_view')}" @click=${() => this._toggle(view.value)}>
+                  <ha-icon .icon=${off ? 'mdi:eye-off' : 'mdi:eye'}></ha-icon>
+                </button>
+              </div>
+            </div>
+          `;
+        })}
+      </div>
+    `;
+  }
+
+  _toggle(path: string) {
+    const hidden = Array.isArray(this.data) ? this.data.map(String) : [];
+    const value = hidden.includes(path) ? hidden.filter((item) => item !== path) : [...hidden, path];
+    this.dispatchEvent(new CustomEvent('value-changed', { detail: { value }, bubbles: true }));
+  }
+
+  static get styles() {
+    return [
+      listStyles,
+      css`
+        .row {
+          padding-left: 16px;
+          min-height: 52px;
+        }
+        .info {
+          cursor: default;
+        }
+      `,
+    ];
+  }
+}
+
+if (!customElements.get('ha-form-sidebar_views')) customElements.define('ha-form-sidebar_views', SidebarViewsField);
 
 // A slider field for ha-form ("type: sidebar_slider") with a button on the right that puts the default back.
 // ha-form renders unknown field types as <ha-form-TYPE> and passes schema, data, label, helper and hass.
@@ -2034,6 +2631,7 @@ class SidebarSliderField extends LitElement {
 
 if (!customElements.get('ha-form-sidebar_slider')) customElements.define('ha-form-sidebar_slider', SidebarSliderField);
 
+
 class SidebarCardEditor extends LitElement {
   hass: any;
   lovelace: any;
@@ -2045,22 +2643,18 @@ class SidebarCardEditor extends LitElement {
   _ready = false;
   _saving = false;
   _error = '';
-  _expanded = -1;
-  _addOpen = false;
   _schemaKey = '';
   _schema: any[] = [];
-  _elementSchemas = new Map<string, any[]>();
 
   static get properties() {
     return {
       hass: { attribute: false },
+      lovelace: { attribute: false },
       side: { type: String, reflect: true },
       _data: { attribute: false },
       _ready: { attribute: false },
       _saving: { attribute: false },
       _error: { attribute: false },
-      _expanded: { attribute: false },
-      _addOpen: { attribute: false },
     };
   }
 
@@ -2078,7 +2672,6 @@ class SidebarCardEditor extends LitElement {
 
   _getSchema() {
     const d = this._data;
-    const views = this.lovelace && this.lovelace.config ? this.lovelace.config.views : [];
     const key = JSON.stringify([
       this.hass && this.hass.language,
       d.viewMenu,
@@ -2087,7 +2680,8 @@ class SidebarCardEditor extends LitElement {
       d.glass,
       d.shadow,
       d.hideTopMenu,
-      (views || []).map((view) => [view.path, view.title]),
+      // views added or deleted in Home Assistant show up right away
+      menuViews(this.lovelace).map((view) => [view.value, view.label, view.icon]),
     ]);
     // a stable schema keeps the focus in the field that is being typed into
     if (key !== this._schemaKey) {
@@ -2095,12 +2689,6 @@ class SidebarCardEditor extends LitElement {
       this._schema = buildEditorSchema(d, this.lovelace, this.hass);
     }
     return this._schema;
-  }
-
-  _getElementSchema(element: any) {
-    const key = [element.type, element.formatPreset === CUSTOM_DATE_FORMAT, this.hass && this.hass.language].join('|');
-    if (!this._elementSchemas.has(key)) this._elementSchemas.set(key, elementSchema(element, this.hass));
-    return this._elementSchemas.get(key);
   }
 
   render() {
@@ -2116,7 +2704,6 @@ class SidebarCardEditor extends LitElement {
         <div class="content">
           ${this._ready
             ? html`
-                ${this._renderElements()}
                 <ha-form
                   .hass=${this.hass}
                   .data=${this._data}
@@ -2143,186 +2730,17 @@ class SidebarCardEditor extends LitElement {
     `;
   }
 
-  // clocks and dates: add, reorder by dragging the handle, open one to change it
-  _renderElements() {
-    const t = (key: string) => localize(key, this.hass);
-    const elements = this._data.elements || [];
-    return html`
-      <ha-expansion-panel outlined expanded class="elements-panel">
-        <ha-icon slot="leading-icon" icon="mdi:clock-outline"></ha-icon>
-        <div slot="header" role="heading" aria-level="3">${t('section_header')}</div>
-        <div class="elements-content">
-          <div class="elements">
-            ${elements.map(
-              (element, index) => html`
-                <div class="element${this._expanded === index ? ' expanded' : ''}">
-                  <div class="element-row">
-                    <span class="handle" title="${t('move_element')}" @pointerdown=${(ev) => this._dragStart(ev, index)}>
-                      <ha-icon icon="mdi:drag-horizontal-variant"></ha-icon>
-                    </span>
-                    <ha-icon class="element-icon" .icon=${ELEMENT_TYPES[element.type].icon}></ha-icon>
-                    <div class="element-info" @click=${() => this._toggleElement(index)}>
-                      <span class="element-name">${t('element_' + element.type)}</span>
-                      <span class="element-summary">${elementSummary(element, this.hass)}</span>
-                    </div>
-                    <button class="icon" title="${t('edit_element')}" @click=${() => this._toggleElement(index)}>
-                      <ha-icon .icon=${this._expanded === index ? 'mdi:chevron-up' : 'mdi:pencil'}></ha-icon>
-                    </button>
-                    <button class="icon" title="${t('remove_element')}" @click=${() => this._removeElement(index)}>
-                      <ha-icon icon="mdi:delete"></ha-icon>
-                    </button>
-                  </div>
-                  ${this._expanded === index
-                    ? html`
-                        <div class="element-form">
-                          <ha-form
-                            .hass=${this.hass}
-                            .data=${element}
-                            .schema=${this._getElementSchema(element)}
-                            .computeLabel=${this._computeLabel}
-                            .computeHelper=${this._computeHelper}
-                            @value-changed=${(ev) => this._elementChanged(ev, index)}
-                          ></ha-form>
-                        </div>
-                      `
-                    : ''}
-                </div>
-              `,
-            )}
-          </div>
-          ${elements.length === 0
-            ? html`
-                <p class="hint">${t('no_elements')}</p>
-              `
-            : ''}
-          ${this._addOpen
-            ? html`
-                <div class="add-menu">
-                  ${Object.keys(ELEMENT_TYPES).map(
-                    (type) => html`
-                      <button class="add-option" @click=${() => this._addElement(type)}>
-                        <ha-icon .icon=${ELEMENT_TYPES[type].icon}></ha-icon>
-                        <span>${t('element_' + type)}</span>
-                      </button>
-                    `,
-                  )}
-                </div>
-              `
-            : ''}
-          <button class="add-button" @click=${() => (this._addOpen = !this._addOpen)}>
-            <ha-icon .icon=${this._addOpen ? 'mdi:close' : 'mdi:plus'}></ha-icon>
-            <span>${this._addOpen ? t('cancel') : t('add_element')}</span>
-          </button>
-        </div>
-      </ha-expansion-panel>
-    `;
-  }
-
-  _setElements(elements: any[]) {
-    this._update(Object.assign({}, this._data, { elements }));
-  }
-
-  _toggleElement(index: number) {
-    this._expanded = this._expanded === index ? -1 : index;
-  }
-
-  _addElement(type: string) {
-    const elements = [...(this._data.elements || []), toElementFormData({ type }, languageOf(this.hass))];
-    this._addOpen = false;
-    this._expanded = elements.length - 1;
-    this._setElements(elements);
-  }
-
-  _removeElement(index: number) {
-    const elements = [...(this._data.elements || [])];
-    elements.splice(index, 1);
-    if (this._expanded === index) this._expanded = -1;
-    else if (this._expanded > index) this._expanded -= 1;
-    this._setElements(elements);
-  }
-
-  _moveElement(from: number, to: number) {
-    const elements = [...(this._data.elements || [])];
-    const [moved] = elements.splice(from, 1);
-    elements.splice(to, 0, moved);
-    if (this._expanded === from) this._expanded = to;
-    else if (this._expanded > from && this._expanded <= to) this._expanded -= 1;
-    else if (this._expanded < from && this._expanded >= to) this._expanded += 1;
-    this._setElements(elements);
-  }
-
-  _elementChanged(ev: any, index: number) {
-    ev.stopPropagation();
-    const elements = [...(this._data.elements || [])];
-    const previous = elements[index];
-    const element = Object.assign({}, ev.detail.value);
-    // dropdowns never end up empty
-    ['timeFormat', 'formatPreset', 'timeZone'].forEach((key) => {
-      if (key in previous && isEmpty(element[key])) element[key] = previous[key];
-    });
-    // a chosen preset is copied into the custom field, so "custom" starts from it
-    if (element.formatPreset !== previous.formatPreset && element.formatPreset !== CUSTOM_DATE_FORMAT) element.format = element.formatPreset;
-    elements[index] = element;
-    this._setElements(elements);
-  }
-
-  // pointer events work with mouse and touch; the other rows make room while one is dragged
-  _dragStart(ev: PointerEvent, index: number) {
-    const handle = ev.currentTarget as HTMLElement;
-    const list = this.shadowRoot && (this.shadowRoot as any).querySelector('.elements');
-    const rows = list ? (Array.from(list.children) as HTMLElement[]) : [];
-    if (rows.length < 2) return;
-    ev.preventDefault();
-    const rects = rows.map((row) => row.getBoundingClientRect());
-    const dragged = rows[index];
-    const step = rects[index].height + 8;
-    const startY = ev.clientY;
-    let target = index;
-    list.classList.add('sorting');
-    dragged.classList.add('dragging');
-    handle.setPointerCapture(ev.pointerId);
-
-    const move = (moveEvent: PointerEvent) => {
-      const dy = moveEvent.clientY - startY;
-      dragged.style.transform = `translateY(${dy}px)`;
-      const center = rects[index].top + rects[index].height / 2 + dy;
-      target = index;
-      for (let i = index + 1; i < rects.length; i++) if (center > rects[i].top + rects[i].height / 2) target = i;
-      for (let i = index - 1; i >= 0; i--) if (center < rects[i].top + rects[i].height / 2) target = i;
-      rows.forEach((row, i) => {
-        if (i === index) return;
-        const shift = index < target && i > index && i <= target ? -step : index > target && i >= target && i < index ? step : 0;
-        row.style.transform = shift ? `translateY(${shift}px)` : '';
-      });
-    };
-    const end = () => {
-      handle.removeEventListener('pointermove', move);
-      handle.removeEventListener('pointerup', end);
-      handle.removeEventListener('pointercancel', end);
-      list.classList.remove('sorting');
-      dragged.classList.remove('dragging');
-      rows.forEach((row) => (row.style.transform = ''));
-      if (target !== index) this._moveElement(index, target);
-    };
-    handle.addEventListener('pointermove', move);
-    handle.addEventListener('pointerup', end);
-    handle.addEventListener('pointercancel', end);
-  }
-
   _valueChanged(ev: any) {
     ev.stopPropagation();
     const previous = this._data;
-    const data = Object.assign({}, ev.detail.value, { elements: previous.elements });
-    ['menuIcons', 'bottomButtonsLayout', 'widthUnit'].forEach((key) => {
+    const data = Object.assign({}, ev.detail.value);
+    // dropdowns never end up empty
+    ['menuIcons', 'menuPosition', 'bottomButtonsLayout', 'widthUnit'].forEach((key) => {
       if (isEmpty(data[key])) data[key] = previous[key] || EDITOR_DEFAULTS[key];
     });
     if (data.widthUnit !== previous.widthUnit && data.width) {
       data.width = convertWidth(data.width, data.widthUnit);
     }
-    this._update(data);
-  }
-
-  _update(data: any) {
     this._data = data;
     // the panel moves to the other side together with the sidebar
     this.side = data.showRight ? 'left' : 'right';
@@ -2467,119 +2885,6 @@ class SidebarCardEditor extends LitElement {
       button[disabled] {
         opacity: 0.5;
         cursor: default;
-      }
-
-      /* clocks and dates, styled like the expandable sections of ha-form */
-      .elements-panel {
-        display: block;
-        margin-bottom: 24px;
-        --expansion-panel-content-padding: 0;
-        border-radius: var(--ha-border-radius-md, 8px);
-        --ha-card-border-radius: var(--ha-border-radius-md, 8px);
-      }
-      .elements-panel:not(:defined) {
-        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
-        padding: 12px;
-      }
-      .elements-panel > ha-icon {
-        color: var(--secondary-text-color, #727272);
-      }
-      .elements-content {
-        padding: 12px;
-      }
-      .elements {
-        display: flex;
-        flex-direction: column;
-        gap: 8px;
-      }
-      .element {
-        position: relative;
-        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
-        border-radius: var(--ha-border-radius-md, 8px);
-        background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
-      }
-      .elements.sorting .element:not(.dragging) {
-        transition: transform 0.15s ease;
-      }
-      .element.dragging {
-        z-index: 1;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
-      }
-      .element-row {
-        display: flex;
-        align-items: center;
-        gap: 4px;
-        min-height: 56px;
-        padding-right: 4px;
-      }
-      .handle {
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        align-self: stretch;
-        width: 40px;
-        color: var(--secondary-text-color, #727272);
-        cursor: move;
-        touch-action: none;
-      }
-      .element-icon {
-        flex: none;
-        color: var(--secondary-text-color, #727272);
-      }
-      .element-info {
-        display: flex;
-        flex: 1 1 auto;
-        flex-direction: column;
-        min-width: 0;
-        padding: 8px 4px 8px 12px;
-        cursor: pointer;
-      }
-      .element-name {
-        font-size: 15px;
-        line-height: 20px;
-      }
-      .element-summary {
-        overflow: hidden;
-        text-overflow: ellipsis;
-        white-space: nowrap;
-        color: var(--secondary-text-color, #727272);
-        font-size: 13px;
-        line-height: 18px;
-      }
-      .element-form {
-        padding: 8px 16px 16px;
-        border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
-      }
-      .add-menu {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 8px;
-        margin-top: 12px;
-      }
-      .add-option,
-      .add-button {
-        display: inline-flex;
-        align-items: center;
-        gap: 8px;
-        height: 40px;
-        padding: 0 16px 0 12px;
-        border-radius: 20px;
-        font-size: 14px;
-        font-weight: 500;
-      }
-      .add-option {
-        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
-        background: transparent;
-        color: var(--primary-text-color, #212121);
-      }
-      .add-option ha-icon {
-        color: var(--secondary-text-color, #727272);
-      }
-      .add-button {
-        margin-top: 12px;
-        border: none;
-        background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.12);
-        color: var(--primary-color, #03a9f4);
       }
     `;
   }
@@ -3126,6 +3431,7 @@ function checkLovelace() {
   if (!lovelace || lovelace === state.lovelace || !isCurrentDashboard(lovelace)) return;
   state.lovelace = lovelace;
   state.card.lovelace = lovelace;
+  if (state.card._editor) state.card._editor.lovelace = lovelace;
   // edit mode on/off changes the header height; HA renders it a moment later
   [0, 150, 500].forEach((delay) => setTimeout(() => relayout(state), delay));
 
