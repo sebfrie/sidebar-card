@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.3.0';
+const SIDEBAR_CARD_VERSION = '0.3.1';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -35,8 +35,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     saving: 'Saving…',
     loading: 'Loading editor…',
     save_error: 'Saving failed: ',
-    yaml_hint: 'All options are also available in the raw configuration editor of the dashboard under "sidebar:".',
-    section_header: 'Clock, date & title',
+    section_header: 'Clock & date',
     section_menu: 'Menu',
     section_bottom: 'Pinned to the bottom',
     section_layout: 'Width & position',
@@ -45,13 +44,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_digitalClock: 'Digital clock',
     label_clock: 'Analog clock',
     label_date: 'Date',
-    label_digitalClockWithSeconds: 'Show seconds',
-    label_twelveHourVersion: '12-hour format',
-    label_period: 'Show AM/PM',
+    label_seconds: 'Show seconds',
+    label_timeFormat: 'Time format',
     label_clockSize: 'Digital clock size',
     label_analogClockSize: 'Analog clock size',
-    label_dateFormat: 'Date format',
-    label_title: 'Title',
+    label_dateFormatPreset: 'Date format',
+    label_dateFormat: 'Custom date format',
     label_viewMenu: 'Show the views of this dashboard',
     label_viewMenuExclude: 'Hide these views',
     label_sidebarMenu: 'Additional menu items',
@@ -75,7 +73,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_iconColor: 'Icon color',
     label_accentColor: 'Accent color (active)',
     label_dividerColor: 'Divider color',
-    label_blur: 'Blur behind (glass effect)',
+    label_blur: 'Glass effect (blur)',
     label_style: 'Custom CSS',
     label_hideTopMenu: 'Hide the Home Assistant header',
     label_showTopMenuOnMobile: 'Keep the header on mobile',
@@ -96,13 +94,21 @@ const STRINGS: Record<string, Record<string, string>> = {
     opt_list: 'List',
     opt_percent: 'Percent of the screen',
     opt_pixel: 'Pixels',
+    opt_time_24: '24 hours',
+    opt_time_12: '12 hours',
+    opt_time_12ampm: '12 hours with AM/PM',
+    opt_date_custom: 'Custom format…',
     helper_dateFormat: 'Moment.js format, e.g. dddd, D MMMM',
-    helper_analogClockSize: 'Empty = 220 px, never wider than the sidebar',
-    helper_color: 'CSS color, e.g. #ffffff, rgba(0, 0, 0, 0.4) or var(--primary-color)',
-    helper_width: 'Empty = 25 %. 0 hides the sidebar on that screen size.',
+    helper_width: '0 hides the sidebar on that screen size.',
     helper_hideOnPath: 'Path from the address bar, e.g. /dashboard-home/cameras',
     helper_template: 'Every line as <li>…</li>',
-    helper_conditional: "e.g. {{ is_state('input_boolean.guest', 'on') }}",
+    helper_color: 'CSS color, e.g. #ffffff, rgba(0, 0, 0, 0.4) or var(--primary-color)',
+    helper_blur:
+      'Blurs the dashboard background (image or color) that shows through the sidebar. Only visible with a semi-transparent background, e.g. rgba(0, 0, 0, 0.4).',
+    helper_hideTopMenu:
+      'It stays visible in edit mode. To edit the dashboard, add ?edit=1 to its address; ?sidebarOff shows header and sidebar again until you switch views.',
+    helper_hideHassSidebar: 'Removes it completely, including the menu button. ?sidebarOff in the address shows it again.',
+    helper_dockHassSidebar: 'While this dashboard is open, the sidebar is folded away and opens with the menu button in the header.',
   },
   de: {
     edit_sidebar: 'Seitenleiste bearbeiten',
@@ -112,8 +118,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     saving: 'Speichert…',
     loading: 'Editor wird geladen…',
     save_error: 'Speichern fehlgeschlagen: ',
-    yaml_hint: 'Alle Optionen stehen auch im Rohkonfigurations-Editor des Dashboards unter „sidebar:“.',
-    section_header: 'Uhr, Datum & Titel',
+    section_header: 'Uhr & Datum',
     section_menu: 'Menü',
     section_bottom: 'Unten fixiert',
     section_layout: 'Breite & Position',
@@ -122,13 +127,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_digitalClock: 'Digitaluhr',
     label_clock: 'Analoge Uhr',
     label_date: 'Datum',
-    label_digitalClockWithSeconds: 'Sekunden anzeigen',
-    label_twelveHourVersion: '12-Stunden-Format',
-    label_period: 'AM/PM anzeigen',
+    label_seconds: 'Sekunden anzeigen',
+    label_timeFormat: 'Zeitformat',
     label_clockSize: 'Größe der Digitaluhr',
     label_analogClockSize: 'Größe der Analoguhr',
-    label_dateFormat: 'Datumsformat',
-    label_title: 'Titel',
+    label_dateFormatPreset: 'Datumsformat',
+    label_dateFormat: 'Eigenes Datumsformat',
     label_viewMenu: 'Views dieses Dashboards anzeigen',
     label_viewMenuExclude: 'Diese Views ausblenden',
     label_sidebarMenu: 'Zusätzliche Menüeinträge',
@@ -152,7 +156,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_iconColor: 'Icon-Farbe',
     label_accentColor: 'Akzentfarbe (aktiv)',
     label_dividerColor: 'Trennlinien',
-    label_blur: 'Unschärfe dahinter (Glas-Effekt)',
+    label_blur: 'Glas-Effekt (Unschärfe)',
     label_style: 'Eigenes CSS',
     label_hideTopMenu: 'Kopfleiste von Home Assistant ausblenden',
     label_showTopMenuOnMobile: 'Kopfleiste auf Mobilgeräten behalten',
@@ -173,13 +177,21 @@ const STRINGS: Record<string, Record<string, string>> = {
     opt_list: 'Liste',
     opt_percent: 'Prozent des Bildschirms',
     opt_pixel: 'Pixel',
+    opt_time_24: '24 Stunden',
+    opt_time_12: '12 Stunden',
+    opt_time_12ampm: '12 Stunden mit AM/PM',
+    opt_date_custom: 'Eigenes Format…',
     helper_dateFormat: 'Moment.js-Format, z. B. dddd, D. MMMM',
-    helper_analogClockSize: 'Leer = 220 px, nie breiter als die Seitenleiste',
-    helper_color: 'CSS-Farbe, z. B. #ffffff, rgba(0, 0, 0, 0.4) oder var(--primary-color)',
-    helper_width: 'Leer = 25 %. 0 blendet die Seitenleiste bei dieser Bildschirmgröße aus.',
+    helper_width: '0 blendet die Seitenleiste bei dieser Bildschirmgröße aus.',
     helper_hideOnPath: 'Pfad aus der Adresszeile, z. B. /dashboard-home/kameras',
     helper_template: 'Jede Zeile als <li>…</li>',
-    helper_conditional: "z. B. {{ is_state('input_boolean.gast', 'on') }}",
+    helper_color: 'CSS-Farbe, z. B. #ffffff, rgba(0, 0, 0, 0.4) oder var(--primary-color)',
+    helper_blur:
+      'Zeichnet den Hintergrund des Dashboards (Bild oder Farbe), der durch die Seitenleiste durchscheint, unscharf. Nur sichtbar mit halbtransparentem Hintergrund, z. B. rgba(0, 0, 0, 0.4).',
+    helper_hideTopMenu:
+      'Im Bearbeitungsmodus bleibt sie sichtbar. Zum Bearbeiten ?edit=1 an die Adresse des Dashboards anhängen; ?sidebarOff zeigt Kopf- und Seitenleiste bis zum nächsten View-Wechsel wieder.',
+    helper_hideHassSidebar: 'Blendet sie komplett aus, auch den Menü-Button. ?sidebarOff an der Adresse zeigt sie wieder.',
+    helper_dockHassSidebar: 'Solange dieses Dashboard offen ist, ist sie eingeklappt und öffnet sich über den Menü-Button in der Kopfleiste.',
   },
 };
 
@@ -246,6 +258,43 @@ function clone(value: any) {
   return value === undefined ? undefined : JSON.parse(JSON.stringify(value));
 }
 
+function languageOf(hassObj?: any) {
+  return String((hassObj || hass() || {}).language || 'en');
+}
+
+// "seconds" applies to both clocks; older configs had digitalClockWithSeconds (digital only, analog always ticked)
+function showSeconds(config: any) {
+  if (config.seconds !== undefined) return !!config.seconds;
+  if (config.digitalClockWithSeconds !== undefined) return !!config.digitalClockWithSeconds;
+  return !config.digitalClock && !!config.clock;
+}
+
+// '24', '12' or '12ampm'; older configs had twelveHourVersion + period
+function timeFormatOf(config: any) {
+  if (['24', '12', '12ampm'].includes(config.timeFormat)) return config.timeFormat;
+  return config.twelveHourVersion ? (config.period ? '12ampm' : '12') : '24';
+}
+
+function formatTime(date: Date, format: string, seconds: boolean) {
+  const pad = (value: number) => (value < 10 ? '0' : '') + value;
+  let hours = date.getHours();
+  let suffix = '';
+  if (format !== '24') {
+    if (format === '12ampm') suffix = hours >= 12 ? ' pm' : ' am';
+    hours = hours % 12 || 12;
+  }
+  let time = (format === '24' ? pad(hours) : String(hours)) + ':' + pad(date.getMinutes());
+  if (seconds) time += ':' + pad(date.getSeconds());
+  return time + suffix;
+}
+
+// the five date formats offered in the editor; the first one is the default
+function datePresets(language: string) {
+  return language.split('-')[0] === 'de'
+    ? ['dddd, D. MMMM', 'dddd, D. MMMM YYYY', 'D. MMMM YYYY', 'dd, D.M.', 'DD.MM.YYYY']
+    : ['dddd, MMMM D', 'dddd, MMMM D, YYYY', 'MMMM D, YYYY', 'ddd, MMM D', 'L'];
+}
+
 // ##########################################################################################
 // ###   The actual Sidebar Card element
 // ##########################################################################################
@@ -270,6 +319,7 @@ class SidebarCard extends LitElement {
   _held = false;
   _editor: any = null;
   _warnedTemplates = new Set<string>();
+  _resizeObserver: any = null;
   _boundLocationChange: any;
   _boundResize: any;
 
@@ -294,16 +344,9 @@ class SidebarCard extends LitElement {
 
   constructor() {
     super();
-    this._boundLocationChange = () => {
-      setTimeout(() => {
-        // re-render marks the active menu item; the sidebar may have been shown again by hideOnPath (#78)
-        this.requestUpdate();
-        this.updateSidebarSize();
-      }, 50);
-    };
-    this._boundResize = () => {
-      setTimeout(() => this.updateSidebarSize(), 1);
-    };
+    // re-render marks the active menu item
+    this._boundLocationChange = () => this.requestUpdate();
+    this._boundResize = () => this.updateSidebarSize();
   }
 
   connectedCallback() {
@@ -313,6 +356,11 @@ class SidebarCard extends LitElement {
     window.addEventListener('resize', this._boundResize, true);
     if (!this._tickInterval) {
       this._tickInterval = setInterval(() => this._tick(), 1000);
+    }
+    // sizes the fixed inner part whenever the sidebar column changes, e.g. shown again after hideOnPath (#78)
+    if (!this._resizeObserver && typeof ResizeObserver !== 'undefined') {
+      this._resizeObserver = new ResizeObserver(() => this.updateSidebarSize());
+      this._resizeObserver.observe(this);
     }
   }
 
@@ -326,6 +374,10 @@ class SidebarCard extends LitElement {
     this._tickInterval = null;
     clearTimeout(this._holdTimer);
     this._unsubscribeTemplate();
+    if (this._resizeObserver) {
+      this._resizeObserver.disconnect();
+      this._resizeObserver = null;
+    }
   }
 
   setConfig(config: any) {
@@ -367,18 +419,17 @@ class SidebarCard extends LitElement {
           `
         : ''}
       <div class="sidebar-inner${c.blur ? ' blur' : ''}">
+        ${this._isEditMode()
+          ? html`
+              <button class="edit-sidebar" title="${localize('edit_sidebar', this.hass)}" @click=${() => this._openEditor()}>
+                <ha-icon icon="mdi:pencil"></ha-icon>
+              </button>
+            `
+          : ''}
         <div class="sidebar-main">
-          ${this._isEditMode()
-            ? html`
-                <button class="edit-sidebar" @click=${() => this._openEditor()}>
-                  <ha-icon icon="mdi:pencil"></ha-icon>
-                  <span>${localize('edit_sidebar', this.hass)}</span>
-                </button>
-              `
-            : ''}
           ${c.digitalClock
             ? html`
-                <h1 class="digitalClock${c.title ? ' with-title' : ''}${c.digitalClockWithSeconds ? ' with-seconds' : ''}">${this._timeString()}</h1>
+                <h1 class="digitalClock${c.title ? ' with-title' : ''}${showSeconds(c) ? ' with-seconds' : ''}">${this._timeString()}</h1>
               `
             : ''}
           ${c.clock ? this._renderAnalogClock() : ''}
@@ -452,7 +503,11 @@ class SidebarCard extends LitElement {
         <div class="wrap">
           <span class="hour" style="transform: rotate(${hours * 30 + minutes * 0.5}deg)"></span>
           <span class="minute" style="transform: rotate(${minutes * 6 + seconds * 0.1}deg)"></span>
-          <span class="second" style="transform: rotate(${seconds * 6}deg)"></span>
+          ${showSeconds(this.config)
+            ? html`
+                <span class="second" style="transform: rotate(${seconds * 6}deg)"></span>
+              `
+            : ''}
           <span class="dot"></span>
         </div>
       </div>
@@ -510,23 +565,14 @@ class SidebarCard extends LitElement {
   }
 
   _timeString() {
-    const c = this.config;
-    const pad = (value: number) => (value < 10 ? '0' : '') + value;
-    let hours = this._now.getHours();
-    let suffix = '';
-    if (c.twelveHourVersion) {
-      if (c.period) suffix = hours >= 12 ? ' pm' : ' am';
-      hours = hours % 12 || 12;
-    }
-    let time = pad(hours) + ':' + pad(this._now.getMinutes());
-    if (c.digitalClockWithSeconds) time += ':' + pad(this._now.getSeconds());
-    return time + suffix;
+    return formatTime(this._now, timeFormatOf(this.config), showSeconds(this.config));
   }
 
   _dateString() {
-    const now = moment(this._now);
-    now.locale(this.hass ? this.hass.language : 'en');
-    return now.format(this.config.dateFormat || 'DD MMMM');
+    const language = languageOf(this.hass);
+    return moment(this._now)
+      .locale(language)
+      .format(this.config.dateFormat || datePresets(language)[0]);
   }
 
   /* **************************************** *
@@ -843,7 +889,7 @@ class SidebarCard extends LitElement {
 
   firstUpdated() {
     provideHass(this);
-    [50, 350, 1000].forEach((delay) => setTimeout(() => this.updateSidebarSize(), delay));
+    this.updateSidebarSize();
   }
 
   updated(changedProps: any) {
@@ -887,7 +933,7 @@ class SidebarCard extends LitElement {
 
     if (sidebarInner) {
       sidebarInner.style.width = this.offsetWidth + 'px';
-      if (isTopMenuHidden(this.config, document.body.clientWidth)) {
+      if (isTopMenuHidden(this.config, document.body.clientWidth, !!(this.lovelace && this.lovelace.editMode))) {
         sidebarInner.style.height = `${window.innerHeight}px`;
         sidebarInner.style.top = '0px';
       } else {
@@ -964,24 +1010,25 @@ class SidebarCard extends LitElement {
 
       /* edit mode */
       .edit-sidebar {
+        position: absolute;
+        top: 12px;
+        right: 12px;
+        z-index: 2;
         display: flex;
         align-items: center;
         justify-content: center;
-        gap: 8px;
-        width: 100%;
-        margin: 0 0 20px;
-        padding: 10px 12px;
-        border: 2px dashed var(--primary-color, #03a9f4);
-        border-radius: 12px;
-        background: transparent;
-        color: var(--primary-color, #03a9f4);
-        font: inherit;
-        font-size: 15px;
-        font-weight: 500;
+        width: 44px;
+        height: 44px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: var(--primary-color, #03a9f4);
+        color: var(--text-primary-color, #fff);
+        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
         cursor: pointer;
       }
       .edit-sidebar:hover {
-        background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.08);
+        filter: brightness(1.1);
       }
 
       /* clock, title, date */
@@ -1271,9 +1318,35 @@ customElements.define('sidebar-card', SidebarCard);
 // ###   The sidebar editor (opened from the sidebar in edit mode)
 // ##########################################################################################
 
-// The form data uses one width object and a unit; the stored config may be a plain number or strings
-function toFormData(config: any) {
-  const data = clone(config || {}) || {};
+// Defaults the editor shows in its fields; values equal to them are not stored
+const EDITOR_DEFAULTS: Record<string, any> = {
+  menuIcons: 'left',
+  bottomButtonsLayout: 'row',
+  timeFormat: '24',
+  widthUnit: '%',
+  clockSize: 60,
+  analogClockSize: 220,
+  menuFontSize: 18,
+  blur: 0,
+};
+const DEFAULT_BREAKPOINTS = { tablet: 1024, mobile: 768 };
+const DEFAULT_WIDTH_PERCENT = 25;
+const CUSTOM_DATE_FORMAT = 'custom';
+const WIDTH_KEYS = ['desktop', 'tablet', 'mobile'];
+// keys the editor replaces by seconds, timeFormat and dateFormat
+const LEGACY_KEYS = ['digitalClockWithSeconds', 'twelveHourVersion', 'period'];
+
+function isEmpty(value: any) {
+  if (value === undefined || value === null || value === '') return true;
+  if (Array.isArray(value)) return value.length === 0;
+  if (typeof value === 'object') return Object.keys(value).length === 0;
+  return false;
+}
+
+// The form uses one width object plus a unit and shows every default; the stored config may be shorter
+function toFormData(config: any, hassObj: any) {
+  const source = config || {};
+  const data = clone(source) || {};
   let unit = data.widthUnit;
   const parse = (value: any) => {
     if (typeof value === 'string') {
@@ -1285,39 +1358,82 @@ function toFormData(config: any) {
     }
     return value;
   };
+  let width: any = {};
   if (data.width !== undefined && data.width !== null) {
     if (typeof data.width === 'object') {
-      data.width = { desktop: parse(data.width.desktop), tablet: parse(data.width.tablet), mobile: parse(data.width.mobile) };
+      WIDTH_KEYS.forEach((key) => (width[key] = parse(data.width[key])));
     } else {
       const value = parse(data.width);
-      data.width = { desktop: value, tablet: value, mobile: value };
+      width = { desktop: value, tablet: value, mobile: value };
     }
   }
-  data.widthUnit = unit || '%';
+  unit = unit || '%';
+  WIDTH_KEYS.forEach((key) => {
+    if (typeof width[key] !== 'number') width[key] = unit === 'px' ? 300 : DEFAULT_WIDTH_PERCENT;
+  });
+  data.width = width;
+  data.widthUnit = unit;
+  data.breakpoints = Object.assign({}, DEFAULT_BREAKPOINTS, data.breakpoints || {});
+
+  data.seconds = showSeconds(source);
+  data.timeFormat = timeFormatOf(source);
+  LEGACY_KEYS.forEach((key) => delete data[key]);
+
+  const presets = datePresets(languageOf(hassObj));
+  if (!data.dateFormat) data.dateFormat = presets[0];
+  data.dateFormatPreset = presets.includes(data.dateFormat) ? data.dateFormat : CUSTOM_DATE_FORMAT;
+
+  Object.keys(EDITOR_DEFAULTS).forEach((key) => {
+    if (isEmpty(data[key])) data[key] = EDITOR_DEFAULTS[key];
+  });
   if (data.hideOnPath !== undefined && !Array.isArray(data.hideOnPath)) data.hideOnPath = [data.hideOnPath];
   if (data.viewMenuExclude !== undefined) data.viewMenuExclude = ([] as any[]).concat(data.viewMenuExclude).map(String);
   return data;
 }
 
-function isEmpty(value: any) {
-  if (value === undefined || value === null || value === '') return true;
-  if (Array.isArray(value)) return value.length === 0;
-  if (typeof value === 'object') return Object.keys(value).length === 0;
-  return false;
+function fromFormData(formData: any, hassObj: any) {
+  const data = Object.assign({}, formData);
+  const presets = datePresets(languageOf(hassObj));
+  if (data.dateFormatPreset && data.dateFormatPreset !== CUSTOM_DATE_FORMAT) data.dateFormat = data.dateFormatPreset;
+  delete data.dateFormatPreset;
+  if (data.dateFormat === presets[0]) delete data.dateFormat;
+
+  const unit = data.widthUnit || '%';
+  if (data.width && typeof data.width === 'object') {
+    const width = Object.assign({}, data.width);
+    WIDTH_KEYS.forEach((key) => isEmpty(width[key]) && delete width[key]);
+    const isDefault = unit === '%' && WIDTH_KEYS.every((key) => width[key] === DEFAULT_WIDTH_PERCENT);
+    data.width = isDefault ? undefined : width;
+  }
+  if (data.breakpoints && typeof data.breakpoints === 'object') {
+    const breakpoints = Object.assign({}, data.breakpoints);
+    Object.keys(breakpoints).forEach((key) => {
+      if (isEmpty(breakpoints[key]) || breakpoints[key] === DEFAULT_BREAKPOINTS[key]) delete breakpoints[key];
+    });
+    data.breakpoints = breakpoints;
+  }
+  Object.keys(EDITOR_DEFAULTS).forEach((key) => {
+    if (data[key] === EDITOR_DEFAULTS[key]) delete data[key];
+  });
+  LEGACY_KEYS.forEach((key) => delete data[key]);
+
+  const config: any = {};
+  Object.keys(data).forEach((key) => {
+    if (!isEmpty(data[key])) config[key] = data[key];
+  });
+  return config;
 }
 
-function fromFormData(data: any) {
-  const config: any = {};
-  Object.keys(data || {}).forEach((key) => {
-    let value = data[key];
-    if ((key === 'width' || key === 'breakpoints') && value && typeof value === 'object') {
-      value = Object.assign({}, value);
-      Object.keys(value).forEach((sub) => isEmpty(value[sub]) && delete value[sub]);
-    }
-    if (!isEmpty(value)) config[key] = value;
+// keeps the visible width roughly the same when the unit is switched
+function convertWidth(width: any, toUnit: string) {
+  const screen = window.innerWidth || 1280;
+  const result: any = {};
+  WIDTH_KEYS.forEach((key) => {
+    const value = Number(width[key]);
+    if (isNaN(value)) return;
+    result[key] = toUnit === 'px' ? Math.min(600, Math.round((value / 100) * screen / 10) * 10) : Math.min(50, Math.round((value / screen) * 100));
   });
-  if (config.widthUnit === '%') delete config.widthUnit;
-  return config;
+  return result;
 }
 
 // ha-form is loaded on demand by Home Assistant; the tile card editor pulls it in
@@ -1339,16 +1455,26 @@ async function loadHaForm() {
 
 function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
+  const language = languageOf(hassObj);
+  const now = new Date();
   const views = (lovelace && lovelace.config && Array.isArray(lovelace.config.views) ? lovelace.config.views : []).map((view, index) => ({
     value: view.path !== undefined && view.path !== null && view.path !== '' ? String(view.path) : String(index),
     label: view.title || view.path || String(index + 1),
   }));
   const color = (name: string) => ({ name, selector: { text: {} }, __helper: t('helper_color') });
-  const widthSelector =
-    data.widthUnit === 'px'
-      ? { number: { min: 0, max: 1200, step: 10, mode: 'box', unit_of_measurement: 'px' } }
-      : { number: { min: 0, max: 99, step: 1, mode: 'box', unit_of_measurement: '%' } };
-  const pixels = (min: number, max: number) => ({ number: { min, max, step: 1, mode: 'box', unit_of_measurement: 'px' } });
+  const slider = (min: number, max: number, step: number, unit: string) => ({ number: { min, max, step, mode: 'slider', unit_of_measurement: unit } });
+  const dropdown = (options: any[]) => ({ select: { mode: 'dropdown', options } });
+  const widthSelector = data.widthUnit === 'px' ? slider(0, 600, 10, 'px') : slider(0, 50, 1, '%');
+  const timeOptions = ['24', '12', '12ampm'].map((format) => ({ value: format, label: `${t('opt_time_' + format)} (${formatTime(now, format, false)})` }));
+  const dateOptions = [
+    ...datePresets(language).map((format) => ({
+      value: format,
+      label: moment(now)
+        .locale(language)
+        .format(format),
+    })),
+    { value: CUSTOM_DATE_FORMAT, label: t('opt_date_custom') },
+  ];
 
   return [
     {
@@ -1368,23 +1494,18 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             { name: 'date', selector: { boolean: {} } },
           ],
         },
-        { name: 'title', selector: { text: {} } },
+        ...(data.digitalClock || data.clock ? [{ name: 'seconds', selector: { boolean: {} } }] : []),
         ...(data.digitalClock
           ? [
-              {
-                type: 'grid',
-                name: '',
-                schema: [
-                  { name: 'digitalClockWithSeconds', selector: { boolean: {} } },
-                  { name: 'twelveHourVersion', selector: { boolean: {} } },
-                  ...(data.twelveHourVersion ? [{ name: 'period', selector: { boolean: {} } }] : []),
-                ],
-              },
-              { name: 'clockSize', selector: pixels(20, 200) },
+              { name: 'timeFormat', selector: dropdown(timeOptions) },
+              { name: 'clockSize', selector: slider(32, 120, 2, 'px') },
             ]
           : []),
-        ...(data.clock ? [{ name: 'analogClockSize', selector: pixels(80, 600), __helper: t('helper_analogClockSize') }] : []),
-        ...(data.date ? [{ name: 'dateFormat', selector: { text: {} }, __helper: t('helper_dateFormat') }] : []),
+        ...(data.clock ? [{ name: 'analogClockSize', selector: slider(100, 400, 10, 'px') }] : []),
+        ...(data.date ? [{ name: 'dateFormatPreset', selector: dropdown(dateOptions) }] : []),
+        ...(data.date && data.dateFormatPreset === CUSTOM_DATE_FORMAT
+          ? [{ name: 'dateFormat', selector: { text: {} }, __helper: t('helper_dateFormat') }]
+          : []),
       ],
     },
     {
@@ -1413,25 +1534,14 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           },
         },
         {
-          type: 'grid',
-          name: '',
-          schema: [
-            {
-              name: 'menuIcons',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  options: [
-                    { value: 'left', label: t('opt_left') },
-                    { value: 'right', label: t('opt_right') },
-                    { value: 'none', label: t('opt_none') },
-                  ],
-                },
-              },
-            },
-            { name: 'menuFontSize', selector: pixels(10, 48) },
-          ],
+          name: 'menuIcons',
+          selector: dropdown([
+            { value: 'left', label: t('opt_left') },
+            { value: 'right', label: t('opt_right') },
+            { value: 'none', label: t('opt_none') },
+          ]),
         },
+        { name: 'menuFontSize', selector: slider(12, 28, 1, 'px') },
         { name: 'template', selector: { template: {} }, __helper: t('helper_template') },
       ],
     },
@@ -1460,24 +1570,13 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           },
         },
         {
-          type: 'grid',
-          name: '',
-          schema: [
-            {
-              name: 'bottomButtonsLayout',
-              selector: {
-                select: {
-                  mode: 'dropdown',
-                  options: [
-                    { value: 'row', label: t('opt_row') },
-                    { value: 'list', label: t('opt_list') },
-                  ],
-                },
-              },
-            },
-            ...(data.bottomButtonsLayout !== 'list' ? [{ name: 'bottomButtonsShowName', selector: { boolean: {} } }] : []),
-          ],
+          name: 'bottomButtonsLayout',
+          selector: dropdown([
+            { value: 'row', label: t('opt_row') },
+            { value: 'list', label: t('opt_list') },
+          ]),
         },
+        ...(data.bottomButtonsLayout !== 'list' ? [{ name: 'bottomButtonsShowName', selector: { boolean: {} } }] : []),
         { name: 'bottomCard', selector: { object: {} } },
       ],
     },
@@ -1490,31 +1589,28 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
       schema: [
         {
           name: 'widthUnit',
-          selector: {
-            select: {
-              mode: 'dropdown',
-              options: [
-                { value: '%', label: t('opt_percent') },
-                { value: 'px', label: t('opt_pixel') },
-              ],
-            },
-          },
+          selector: dropdown([
+            { value: '%', label: t('opt_percent') },
+            { value: 'px', label: t('opt_pixel') },
+          ]),
         },
         {
           type: 'grid',
           name: 'width',
+          column_min_width: '100%',
           schema: [
-            { name: 'desktop', selector: widthSelector, __label: t('label_width_desktop'), __helper: t('helper_width') },
+            { name: 'desktop', selector: widthSelector, __label: t('label_width_desktop') },
             { name: 'tablet', selector: widthSelector, __label: t('label_width_tablet') },
-            { name: 'mobile', selector: widthSelector, __label: t('label_width_mobile') },
+            { name: 'mobile', selector: widthSelector, __label: t('label_width_mobile'), __helper: t('helper_width') },
           ],
         },
         {
           type: 'grid',
           name: 'breakpoints',
+          column_min_width: '100%',
           schema: [
-            { name: 'tablet', selector: pixels(320, 4000), __label: t('label_breakpoint_tablet') },
-            { name: 'mobile', selector: pixels(240, 4000), __label: t('label_breakpoint_mobile') },
+            { name: 'tablet', selector: slider(600, 2000, 8, 'px'), __label: t('label_breakpoint_tablet') },
+            { name: 'mobile', selector: slider(320, 1200, 8, 'px'), __label: t('label_breakpoint_mobile') },
           ],
         },
         { name: 'showRight', selector: { boolean: {} } },
@@ -1531,8 +1627,9 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
         {
           type: 'grid',
           name: '',
-          schema: [color('background'), color('textColor'), color('iconColor'), color('accentColor'), color('dividerColor'), { name: 'blur', selector: pixels(0, 60) }],
+          schema: [color('background'), color('textColor'), color('iconColor'), color('accentColor'), color('dividerColor')],
         },
+        { name: 'blur', selector: slider(0, 30, 1, 'px'), __helper: t('helper_blur') },
         { name: 'style', selector: { text: { multiline: true } } },
       ],
     },
@@ -1543,10 +1640,10 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
       title: t('section_advanced'),
       icon: 'mdi:cog-outline',
       schema: [
-        { name: 'hideTopMenu', selector: { boolean: {} } },
+        { name: 'hideTopMenu', selector: { boolean: {} }, __helper: t('helper_hideTopMenu') },
         ...(data.hideTopMenu ? [{ name: 'showTopMenuOnMobile', selector: { boolean: {} } }] : []),
-        { name: 'hideHassSidebar', selector: { boolean: {} } },
-        { name: 'dockHassSidebar', selector: { boolean: {} } },
+        { name: 'hideHassSidebar', selector: { boolean: {} }, __helper: t('helper_hideHassSidebar') },
+        { name: 'dockHassSidebar', selector: { boolean: {} }, __helper: t('helper_dockHassSidebar') },
         { name: 'debug', selector: { boolean: {} } },
       ],
     },
@@ -1580,7 +1677,7 @@ class SidebarCardEditor extends LitElement {
 
   connectedCallback() {
     super.connectedCallback();
-    this._data = toFormData(this.originalConfig);
+    this._data = toFormData(this.originalConfig, this.hass);
     loadHaForm().then(() => {
       this._ready = true;
     });
@@ -1597,8 +1694,8 @@ class SidebarCardEditor extends LitElement {
       this.hass && this.hass.language,
       d.digitalClock,
       d.clock,
-      d.twelveHourVersion,
       d.date,
+      d.dateFormatPreset === CUSTOM_DATE_FORMAT,
       d.viewMenu,
       d.bottomButtonsLayout,
       d.widthUnit,
@@ -1635,7 +1732,6 @@ class SidebarCardEditor extends LitElement {
                   .computeHelper=${this._computeHelper}
                   @value-changed=${(ev) => this._valueChanged(ev)}
                 ></ha-form>
-                <p class="hint">${t('yaml_hint')}</p>
               `
             : html`
                 <p class="hint">${t('loading')}</p>
@@ -1656,15 +1752,24 @@ class SidebarCardEditor extends LitElement {
 
   _valueChanged(ev: any) {
     ev.stopPropagation();
-    this._data = Object.assign({}, ev.detail.value);
-    if (this.onPreview) this.onPreview(fromFormData(this._data));
+    const previous = this._data;
+    const data = Object.assign({}, ev.detail.value);
+    // a chosen preset is copied into the custom field, so "custom" starts from it
+    if (data.dateFormatPreset !== previous.dateFormatPreset && data.dateFormatPreset !== CUSTOM_DATE_FORMAT) {
+      data.dateFormat = data.dateFormatPreset;
+    }
+    if (data.widthUnit !== previous.widthUnit && data.width) {
+      data.width = convertWidth(data.width, data.widthUnit);
+    }
+    this._data = data;
+    if (this.onPreview) this.onPreview(fromFormData(data, this.hass));
   }
 
   async _save() {
     this._saving = true;
     this._error = '';
     try {
-      const config = fromFormData(this._data);
+      const config = fromFormData(this._data, this.hass);
       // the latest dashboard config, so changes made in the HA editor meanwhile are kept
       const lovelace = getLovelace() || this.lovelace;
       const stored = lovelace.rawConfig || lovelace.config;
@@ -1818,8 +1923,8 @@ function resolveWidth(sidebarConfig: any, screenWidth: number) {
   return String(width).trim();
 }
 
-function createCSS(sidebarConfig: any, screenWidth: number) {
-  const hideTopMenu = isTopMenuHidden(sidebarConfig, screenWidth);
+function createCSS(sidebarConfig: any, screenWidth: number, editMode = false) {
+  const hideTopMenu = isTopMenuHidden(sidebarConfig, screenWidth, editMode);
   const headerHeightPx = getHeaderHeightPx();
   const sidebarWidth = resolveWidth(sidebarConfig, screenWidth);
   const hidden = parseFloat(sidebarWidth) === 0;
@@ -1955,9 +2060,10 @@ function getAppDrawer() {
   return drawer && drawer.shadowRoot && drawer.shadowRoot.querySelector('.mdc-drawer');
 }
 
-// true when the HA header should be hidden at this screen width
-function isTopMenuHidden(sidebarConfig: any, width: number) {
+// true when the HA header should be hidden at this screen width; in edit mode it stays, so "Done" can be reached
+function isTopMenuHidden(sidebarConfig: any, width: number, editMode = false) {
   return (
+    !editMode &&
     sidebarConfig.hideTopMenu === true &&
     getParameterByName('sidebarOff') == null &&
     !(sidebarConfig.showTopMenuOnMobile === true && width <= (sidebarConfig.breakpoints?.mobile ?? 768))
@@ -2052,18 +2158,37 @@ function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-// gets the lovelace config
-async function getConfig() {
-  let lovelace: any;
-  while (!lovelace) {
-    lovelace = getLovelace();
-    if (!lovelace || !isCurrentDashboard(lovelace)) {
-      lovelace = null;
-      await sleep(500);
-    }
-  }
+// the next animation frame, or a short timeout in background tabs where frames do not run
+function nextFrame() {
+  return new Promise((resolve) => {
+    const timeout = setTimeout(resolve, 100);
+    requestAnimationFrame(() => {
+      clearTimeout(timeout);
+      resolve(undefined);
+    });
+  });
+}
 
-  return lovelace;
+// Checks every frame at first, so the sidebar is in place before Home Assistant paints the view
+// (the cards jumped to the right when it came 500 ms later); slower after 10 s, e.g. on other pages
+async function poll(check: () => any, timeoutMs = Infinity) {
+  const start = Date.now();
+  for (;;) {
+    const value = check();
+    if (value) return value;
+    const elapsed = Date.now() - start;
+    if (elapsed > timeoutMs) return null;
+    if (elapsed < 10000) await nextFrame();
+    else await sleep(500);
+  }
+}
+
+// gets the lovelace config of the dashboard that is shown
+function getConfig() {
+  return poll(() => {
+    const lovelace = getLovelace();
+    return lovelace && isCurrentDashboard(lovelace) ? lovelace : null;
+  });
 }
 
 // ##########################################################################################
@@ -2083,8 +2208,11 @@ interface SidebarState {
   style: any;
   card: any;
   listeners: any[];
+  observers: any[];
+  relayoutPending: boolean;
   hassSidebarHidden: boolean;
   headerHidden: boolean;
+  docked: boolean;
 }
 
 let current: SidebarState | null = null;
@@ -2095,6 +2223,48 @@ function addListener(state: SidebarState, target: any, type: string, handler: an
   state.listeners.push([target, type, handler, options]);
 }
 
+// HA keeps the docked state per browser; remember what it was so we can put it back
+const DOCK_STORAGE_KEY = 'sidebar-card-dock-before';
+
+function dockHassSidebar(dock: string) {
+  document
+    .querySelector('home-assistant')
+    ?.dispatchEvent(new CustomEvent('hass-dock-sidebar', { detail: { dock }, bubbles: true, composed: true }));
+}
+
+function readDockBefore() {
+  try {
+    return localStorage.getItem(DOCK_STORAGE_KEY);
+  } catch {
+    return null;
+  }
+}
+
+function writeDockBefore(value: string | null) {
+  try {
+    if (value === null) localStorage.removeItem(DOCK_STORAGE_KEY);
+    else localStorage.setItem(DOCK_STORAGE_KEY, value);
+  } catch {
+    // private mode: nothing to remember
+  }
+}
+
+// dockHassSidebar folds the HA sidebar away (like the profile setting "always hidden") while this dashboard is shown
+function applyDock(state: SidebarState | null, wanted: boolean) {
+  const homeAssistant: any = document.querySelector('home-assistant');
+  const docked = homeAssistant && homeAssistant.hass ? homeAssistant.hass.dockedSidebar : undefined;
+  const before = readDockBefore();
+  if (wanted) {
+    if (before === null) writeDockBefore(docked && docked !== 'always_hidden' ? docked : 'unchanged');
+    if (docked !== 'always_hidden') dockHassSidebar('always_hidden');
+    if (state) state.docked = true;
+  } else if ((state && state.docked) || before !== null) {
+    if (before && before !== 'unchanged' && docked === 'always_hidden') dockHassSidebar(before);
+    writeDockBefore(null);
+    if (state) state.docked = false;
+  }
+}
+
 // hides (if requested) the HA header, HA footer and/or HA sidebar, sizes the sidebar and hides it on hideOnPath
 function updateStyling(state: SidebarState, sidebarConfig: any) {
   // listeners of a dashboard that is not shown anymore must not restyle the current one
@@ -2102,7 +2272,8 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   const config = withDefaults(sidebarConfig);
   const width = document.body.clientWidth;
   const offParam = getParameterByName('sidebarOff');
-  const hideTopMenu = isTopMenuHidden(config, width);
+  const editMode = !!(state.lovelace && state.lovelace.editMode);
+  const hideTopMenu = isTopMenuHidden(config, width, editMode);
 
   const root = getRoot();
   // SAFETY CHECK: the HA UI root (or its shadowRoot) may not be ready yet — e.g. a
@@ -2124,8 +2295,11 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   }
 
   // measure the header height without our own padding override
-  if (!hideTopMenu) state.style.textContent = '';
-  state.style.textContent = createCSS(config, width);
+  if (!hideTopMenu && state.style.textContent.includes('padding-top:0')) state.style.textContent = '';
+  const css = createCSS(config, width, editMode);
+  if (state.style.textContent !== css) state.style.textContent = css;
+
+  applyDock(state, config.dockHassSidebar === true && offParam == null);
 
   const hideHassSidebar =
     config.hideHassSidebar === true && offParam == null && !(config.showTopMenuOnMobile === true && width <= config.breakpoints.mobile);
@@ -2141,12 +2315,27 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   if (pathHidden) log2console('updateStyling', 'Disable sidebar for this path');
 }
 
+// measures the header again and sizes the sidebar, e.g. after edit mode added or removed its tab bar
+function relayout(state: SidebarState) {
+  if (current !== state) return;
+  updateStyling(state, state.applied);
+  state.card.updateSidebarSize();
+}
+
+function scheduleRelayout(state: SidebarState) {
+  if (state.relayoutPending) return;
+  state.relayoutPending = true;
+  requestAnimationFrame(() => {
+    state.relayoutPending = false;
+    relayout(state);
+  });
+}
+
 // shows a sidebar config, either the stored one or the editor's preview
 function applyConfig(state: SidebarState, sidebarConfig: any) {
   state.applied = sidebarConfig;
   state.card.setConfig(sidebarConfig);
-  updateStyling(state, sidebarConfig);
-  setTimeout(() => state.card.updateSidebarSize(), 50);
+  relayout(state);
 }
 
 function previewSidebar(sidebarConfig: any) {
@@ -2166,6 +2355,9 @@ function endPreview(saved: boolean) {
 function dropState(state: SidebarState) {
   state.listeners.forEach(([target, type, handler, options]) => target.removeEventListener(type, handler, options));
   state.listeners = [];
+  state.observers.forEach((observer) => observer.disconnect());
+  state.observers = [];
+  if (state.docked) applyDock(state, false);
   if (state.hassSidebarHidden) {
     setHassSidebarHidden(false);
     state.hassSidebarHidden = false;
@@ -2197,9 +2389,13 @@ function teardownSidebar() {
 function checkLovelace() {
   const state = current;
   if (!state) {
-    // a sidebar was added to the dashboard that is shown right now
     const lovelace = getLovelace();
-    if (lovelace && lovelace.config && lovelace.config.sidebar && isCurrentDashboard(lovelace)) buildSidebar();
+    if (lovelace && lovelace.config && isCurrentDashboard(lovelace)) {
+      // a sidebar was added to the dashboard that is shown right now
+      if (lovelace.config.sidebar) buildSidebar();
+      // the HA sidebar was folded away by a dashboard that is gone (e.g. after a reload elsewhere)
+      else if (readDockBefore() !== null) applyDock(null, false);
+    }
     return;
   }
   if (!state.wrapper.isConnected) {
@@ -2210,6 +2406,8 @@ function checkLovelace() {
   if (!lovelace || lovelace === state.lovelace || !isCurrentDashboard(lovelace)) return;
   state.lovelace = lovelace;
   state.card.lovelace = lovelace;
+  // edit mode on/off changes the header height; HA renders it a moment later
+  [0, 150, 500].forEach((delay) => setTimeout(() => relayout(state), delay));
 
   const sidebarConfig = lovelace.config && lovelace.config.sidebar;
   if (!sidebarConfig) {
@@ -2262,17 +2460,15 @@ async function doBuildSidebar() {
     return;
   }
   await root.updateComplete;
-  const appLayout = root.shadowRoot.querySelector('div');
+  // wait (every frame) until hui-root has rendered the view, but only for this dashboard
+  const appLayout = await poll(() => {
+    if (getRoot() !== root) return 'gone';
+    const layout = root.shadowRoot.querySelector('div');
+    return layout && layout.querySelector('#view') ? layout : null;
+  }, 10000);
   // Nothing below awaits before the wrapper is in the DOM, so this check cannot race.
-  if (!appLayout || !appLayout.querySelector('#view') || appLayout.querySelector('#customSidebarWrapper')) {
+  if (!appLayout || appLayout === 'gone' || appLayout.querySelector('#customSidebarWrapper')) {
     return;
-  }
-
-  if (sidebarConfig.dockHassSidebar === true && getParameterByName('sidebarOff') == null) {
-    // Same as the profile setting "always hidden"; HA stores it per browser
-    document
-      .querySelector('home-assistant')
-      ?.dispatchEvent(new CustomEvent('hass-dock-sidebar', { detail: { dock: 'always_hidden' }, bubbles: true, composed: true }));
   }
 
   const style: any = document.createElement('style');
@@ -2309,16 +2505,30 @@ async function doBuildSidebar() {
     style,
     card,
     listeners: [],
+    observers: [],
+    relayoutPending: false,
     hassSidebarHidden: false,
     headerHidden: false,
+    docked: false,
   };
   current = state;
 
-  addListener(state, window, 'resize', () => updateStyling(state, state.applied), true);
-  addListener(state, window, 'location-changed', () => setTimeout(() => updateStyling(state, state.applied), 50));
-  updateStyling(state, sidebarConfig);
-  // measure the header again once Home Assistant has laid it out
-  setTimeout(() => updateStyling(state, state.applied), 1);
+  addListener(state, window, 'resize', () => relayout(state), true);
+  // right away, so hideOnPath shows the sidebar again on the next view (#78); once more after HA re-rendered the header
+  addListener(state, window, 'location-changed', () => {
+    relayout(state);
+    setTimeout(() => relayout(state), 150);
+  });
+  addListener(state, window, 'popstate', () => setTimeout(() => relayout(state), 0));
+  if (typeof ResizeObserver !== 'undefined') {
+    // the header grows and shrinks with edit mode, the view's top padding with it
+    const observer = new ResizeObserver(() => scheduleRelayout(state));
+    const header = root.shadowRoot.querySelector('.header');
+    if (header) observer.observe(header);
+    observer.observe(contentContainer);
+    state.observers.push(observer);
+  }
+  relayout(state);
 }
 
 // show console message on init

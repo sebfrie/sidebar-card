@@ -48,9 +48,13 @@ views:
 ### Editing in the dashboard editor
 
 You do not need YAML for the sidebar. Add an empty `sidebar: {}` once in the raw configuration editor of the dashboard,
-then open the dashboard's edit mode: the sidebar shows an **Edit sidebar** button. It opens a panel next to the sidebar
-with all options below, shows every change live and saves it into the dashboard config. The views themselves stay
-normal Home Assistant views with native cards that you edit as usual.
+then open the dashboard's edit mode: the sidebar shows a round pencil button in its top right corner. It opens a panel
+next to the sidebar with all options below, shows every change live and saves it into the dashboard config. The views
+themselves stay normal Home Assistant views with native cards that you edit as usual.
+
+In edit mode the Home Assistant header is always shown, even with `hideTopMenu`. To get into edit mode while the header
+is hidden, add `?edit=1` to the dashboard's address (e.g. `/dashboard-home/home?edit=1`); `?sidebarOff` shows the
+header and the Home Assistant sidebar again until you switch views.
 
 ### Main Options
 
@@ -61,11 +65,11 @@ Under `sidebar:` you can configure the following options:
 | `title` | string | optional | `Title` | Title to show in the sidebar |
 | `clock` | boolean | optional | `true` | Show analog clock in sidebar |
 | `date` | boolean | optional | `false` | If date is enabled it will display the current date |
-| `dateFormat` | boolean | string | `DD MMMM` | If date is enabled you define how it should show the date with dateFormat, to see the options check this url: [https://momentjs.com/docs/#/parsing/string-format/](https://momentjs.com/docs/#/parsing/string-format/) |
+| `dateFormat` | string | optional | `dddd, D. MMMM` (German), `dddd, MMMM D` (other languages) | If date is enabled you define how it should show the date with dateFormat, to see the options check this url: [https://momentjs.com/docs/#/parsing/string-format/](https://momentjs.com/docs/#/parsing/string-format/) |
 | `digitalClock` | boolean | optional | `true` | Show digital clock in sidebar |
-| `digitalClockWithSeconds` | boolean | optional | `true` | If digitalClock is enabled you can also enable to show seconds |
-| `twelveHourVersion` | boolean | optional | `false` | If digitalClock is enabled you can also enable this to 12 hour version |
-| `period` | boolean | optional | `false` | If twelveHourVersion is enabled you can enable this to show 'AM' or 'PM' |
+| `seconds` | boolean | optional | `false` | Show seconds on the digital clock and the second hand on the analog clock |
+| `timeFormat` | string | optional | `24` | `24`, `12` or `12ampm` |
+| `digitalClockWithSeconds`, `twelveHourVersion`, `period` | boolean | optional | | Older options, still read; the editor replaces them by `seconds` and `timeFormat`. Without `seconds`, an analog clock on its own keeps its second hand |
 | `showRight` | boolean | optional | `false` | If showRight is enabled the sidebar will be shown on the right side of the screen |
 | `clockSize` | number | optional | `60` | Font size of the digital clock in px |
 | `analogClockSize` | number | optional | `220` | Size of the analog clock in px, never wider than the sidebar |
@@ -92,7 +96,7 @@ Under `sidebar:` you can configure the following options:
 | `bottomCard` | object | optional | *see info below* | Define any card that will be rendered at the bottom of the sidebar |
 | `showTopMenuOnMobile` | boolean | optional | `true` | If you hide the top menu you can set this to `true` so that it will be shown on mobile |
 | `hideHassSidebar` | boolean | optional | `true` | Hide the home assistant sidebar |
-| `dockHassSidebar` | boolean | optional | `false` | Collapse the home assistant sidebar behind the menu button, like the profile setting "always hidden". Home Assistant remembers this per browser, so switch it back in your profile if you remove the option |
+| `dockHassSidebar` | boolean | optional | `false` | Collapse the home assistant sidebar behind the menu button (like the profile setting "always hide the sidebar") while this dashboard is shown; the previous setting comes back when you leave the dashboard or switch the option off |
 | `hideOnPath` | array | optional | /lovelace/camera | If you don't want the sidebar on every path you can add a list of paths where it should hide the sidebar. Use the full path from the browser address bar without host and query, e.g. `/lovelace/camera` or `/dashboard-kiosk/cameras` |
 | `hideTopMenu` | boolean | optional | `true` | Hide the top home assistant menu |
 | `debug` | boolean | optional | `false` | Show debugging messages in the browser's developer console |
