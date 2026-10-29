@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.9.0';
+const SIDEBAR_CARD_VERSION = '0.10.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -46,6 +46,11 @@ const STRINGS: Record<string, Record<string, string>> = {
     saving: 'Saving…',
     loading: 'Loading editor…',
     save_error: 'Saving failed: ',
+    edit: 'Edit',
+    delete: 'Delete',
+    deleted: 'Successfully deleted',
+    delete_error: 'Deleting failed',
+    undo: 'Undo',
     section_header: 'Clock & date',
     section_menu: 'Menu',
     section_bottom: 'Footer',
@@ -166,6 +171,11 @@ const STRINGS: Record<string, Record<string, string>> = {
     saving: 'Speichert…',
     loading: 'Editor wird geladen…',
     save_error: 'Speichern fehlgeschlagen: ',
+    edit: 'Bearbeiten',
+    delete: 'Löschen',
+    deleted: 'Erfolgreich gelöscht',
+    delete_error: 'Löschen fehlgeschlagen',
+    undo: 'Rückgängig',
     section_header: 'Uhr & Datum',
     section_menu: 'Menü',
     section_bottom: 'Fußzeile',
@@ -533,6 +543,8 @@ class SidebarCard extends LitElement {
   _holdTimer: any = null;
   _held = false;
   _editor: any = null;
+  _hover = false;
+  _touchStarted = false;
   _warnedTemplates = new Set<string>();
   _resizeObserver: any = null;
   _boundLocationChange: any;
@@ -550,6 +562,7 @@ class SidebarCard extends LitElement {
       _now: { attribute: false },
       _templateNodes: { attribute: false },
       _bottomCardEl: { attribute: false },
+      _hover: { attribute: false },
     };
   }
 
@@ -585,6 +598,7 @@ class SidebarCard extends LitElement {
     window.removeEventListener('location-changed', this._boundLocationChange);
     window.removeEventListener('popstate', this._boundLocationChange);
     window.removeEventListener('resize', this._boundResize, true);
+    document.removeEventListener('click', this._documentClicked);
     clearInterval(this._tickInterval);
     this._tickInterval = null;
     clearTimeout(this._holdTimer);
@@ -634,15 +648,15 @@ class SidebarCard extends LitElement {
             </style>
           `
         : ''}
-      <div class="sidebar-inner${isGlass(c) ? ' glass' : ''}${c.dividers === false ? ' no-dividers' : ''}${c.shadow ? ' shadow' : ''}${editMode ? ' editing' : ''}${c.showRight ? ' right' : ''}">
-        ${editMode
-          ? html`
-              <button class="edit-sidebar" title="${localize('edit_sidebar', this.hass)}" @click=${() => this._openEditor()}>
-                <ha-icon icon="mdi:pencil"></ha-icon>
-              </button>
-            `
-          : ''}
-        <div class="sidebar-main">
+      <div
+        class="sidebar-inner${isGlass(c) ? ' glass' : ''}${c.dividers === false ? ' no-dividers' : ''}${c.shadow ? ' shadow' : ''}${editMode ? ' editing' : ''}${this._editor ? ' editor-open' : ''}${c.showRight ? ' right' : ''}"
+        @mouseenter=${() => this._pointerEnter()}
+        @mouseleave=${() => (this._hover = false)}
+        @touchstart=${() => this._touchStart()}
+        @touchend=${() => setTimeout(() => (this._touchStarted = false), 10)}
+        @click=${() => this._pointerClick()}
+      >
+        <div class="sidebar-main" ?inert=${editMode}>
           ${elementsOf(c).map((element) => this._renderElement(element))}
           ${c.title
             ? html`
@@ -668,7 +682,7 @@ class SidebarCard extends LitElement {
         </div>
         ${showFooter
           ? html`
-              <div class="sidebar-footer">
+              <div class="sidebar-footer" ?inert=${editMode}>
                 ${buttons.length > 0
                   ? html`
                       <div class="buttons ${layout}">
@@ -684,8 +698,81 @@ class SidebarCard extends LitElement {
               </div>
             `
           : ''}
+        ${editMode ? this._renderEditControls(c) : ''}
       </div>
     `;
+  }
+
+  // like Home Assistant's cards in edit mode: a pencil over the sidebar on hover, a menu in the flag
+  _renderEditControls(c: any) {
+    const editText = haText(this.hass, 'ui.panel.lovelace.editor.edit_card.edit', 'edit');
+    const deleteText = haText(this.hass, 'ui.panel.lovelace.editor.edit_card.delete', 'delete');
+    return html`
+      <div class="edit-overlay${this._hover ? ' visible' : ''}">
+        <div
+          class="control"
+          role="button"
+          tabindex="0"
+          aria-label="${localize('edit_sidebar', this.hass)}"
+          @click=${(ev) => this._overlayClick(ev)}
+          @keydown=${(ev) => this._overlayClick(ev)}
+        >
+          <div class="control-overlay"></div>
+          <ha-icon icon="mdi:pencil"></ha-icon>
+        </div>
+      </div>
+      <ha-dropdown class="edit-menu" placement="${c.showRight ? 'bottom-end' : 'bottom-start'}" @wa-select=${(ev) => this._menuSelect(ev)}>
+        <button slot="trigger" class="edit-sidebar" aria-label="${localize('edit_sidebar', this.hass)}">
+          <ha-icon icon="mdi:dots-vertical"></ha-icon>
+        </button>
+        <ha-dropdown-item value="edit">
+          <ha-icon slot="icon" icon="mdi:pencil"></ha-icon>
+          ${editText}
+        </ha-dropdown-item>
+        <wa-divider></wa-divider>
+        <ha-dropdown-item value="delete" variant="danger">
+          ${deleteText}
+          <ha-icon slot="icon" class="warning" icon="mdi:delete"></ha-icon>
+        </ha-dropdown-item>
+      </ha-dropdown>
+    `;
+  }
+
+  // the same hover and touch handling as Home Assistant's hui-card-edit-mode
+  _pointerEnter() {
+    if (!this._touchStarted && this._isEditMode()) this._hover = true;
+  }
+
+  _touchStart() {
+    if (!this._isEditMode()) return;
+    this._touchStarted = true;
+    this._hover = true;
+    document.addEventListener('click', this._documentClicked);
+  }
+
+  _pointerClick() {
+    if (!this._isEditMode()) return;
+    this._hover = true;
+    document.addEventListener('click', this._documentClicked);
+  }
+
+  _documentClicked = (ev: any) => {
+    this._hover = ev.composedPath().includes(this);
+    document.removeEventListener('click', this._documentClicked);
+  };
+
+  _overlayClick(ev: any) {
+    if (ev.defaultPrevented) return;
+    if (ev.type === 'keydown' && ev.key !== 'Enter' && ev.key !== ' ') return;
+    ev.preventDefault();
+    ev.stopPropagation();
+    this._openEditor();
+  }
+
+  _menuSelect(ev: any) {
+    const action = ev.detail && ev.detail.item && ev.detail.item.value;
+    if (action === 'edit') this._openEditor();
+    else if (action === 'delete') deleteSidebarWithToast();
   }
 
   _renderMenuItem(item: any, iconPosition: string) {
@@ -1170,25 +1257,33 @@ class SidebarCard extends LitElement {
     return !!(lovelace && lovelace.editMode && lovelace.mode !== 'yaml' && typeof lovelace.saveConfig === 'function');
   }
 
-  // initial: the config to start from when the dashboard has no sidebar yet
-  _openEditor(initial?: any) {
+  _openEditor() {
     if (this._editor) return;
     const lovelace = this.lovelace;
-    const stored = initial || (lovelace.rawConfig || lovelace.config || {}).sidebar || {};
+    // a sidebar added from the header is not in the dashboard yet
+    const draft = !!(current && current.card === this && current.draft);
+    const stored = (draft ? current!.config : (lovelace.rawConfig || lovelace.config || {}).sidebar) || {};
+    // the preview stays visible while editing: no overlay, no focused pencil keeping it up
+    this._hover = false;
+    const focused = this.shadowRoot && this.shadowRoot.activeElement;
+    if (focused && typeof focused.blur === 'function') focused.blur();
     const editor: any = document.createElement('sidebar-card-editor');
     editor.hass = this.hass;
     editor.lovelace = lovelace;
+    editor.isNew = draft;
     editor.originalConfig = clone(stored);
     editor.side = stored.showRight ? 'left' : 'right';
     editor.onPreview = (config: any) => previewSidebar(config);
     editor.onClose = (saved: boolean) => {
       this._editor = null;
+      this.requestUpdate();
       endPreview(saved);
     };
     // inside home-assistant, so dialogs opened by the form (e.g. list items) reach the dialog manager
     const homeAssistant: any = document.querySelector('home-assistant');
     (homeAssistant && homeAssistant.shadowRoot ? homeAssistant.shadowRoot : document.body).appendChild(editor);
     this._editor = editor;
+    this.requestUpdate();
   }
 
   static get styles() {
@@ -1263,10 +1358,12 @@ class SidebarCard extends LitElement {
       }
 
       /* edit mode: a flag sticking out of the sidebar's outer edge, colored like the flags of HA's sections */
+      /* the flag with the menu sticks out of the sidebar's outer edge (ha-dropdown itself has display: contents) */
       .edit-sidebar {
         position: absolute;
         top: 16px;
         left: 100%;
+        z-index: 3;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -1287,6 +1384,52 @@ class SidebarCard extends LitElement {
       }
       .edit-sidebar:hover {
         filter: brightness(0.95);
+      }
+      .warning {
+        color: var(--error-color, #db4437);
+      }
+      /* as hui-card-edit-mode draws it over cards */
+      .edit-overlay {
+        position: absolute;
+        inset: 0;
+        z-index: 2;
+        opacity: 0;
+        pointer-events: none;
+        transition: opacity 180ms ease-in-out;
+      }
+      .edit-overlay.visible,
+      .edit-overlay:focus-within {
+        opacity: 1;
+        pointer-events: auto;
+      }
+      .editor-open .edit-overlay {
+        opacity: 0;
+        pointer-events: none;
+      }
+      .edit-overlay .control {
+        position: absolute;
+        inset: 0;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        outline: none;
+      }
+      .edit-overlay .control-overlay {
+        position: absolute;
+        inset: 0;
+        opacity: 0.8;
+        background-color: var(--primary-background-color, #fafafa);
+        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+      }
+      .edit-overlay ha-icon {
+        display: flex;
+        position: relative;
+        padding: 8px;
+        border-radius: 50%;
+        color: var(--primary-text-color, #212121);
+        background: var(--secondary-background-color, #e5e5e5);
+        --mdc-icon-size: 20px;
       }
 
       /* clocks, dates, title */
@@ -2906,6 +3049,7 @@ class SidebarCardEditor extends LitElement {
   side = 'right';
   onPreview: any = null;
   onClose: any = null;
+  isNew = false; // not in the dashboard yet: nothing to delete
   _data: any = {};
   _ready = false;
   _saving = false;
@@ -2989,6 +3133,11 @@ class SidebarCardEditor extends LitElement {
               `}
         </div>
         <div class="footer">
+          ${this.isNew
+            ? ''
+            : html`
+                <button class="danger" ?disabled=${this._saving} @click=${() => this._delete()}>${t('delete')}</button>
+              `}
           ${this._error
             ? html`
                 <span class="error">${this._error}</span>
@@ -3030,6 +3179,21 @@ class SidebarCardEditor extends LitElement {
       this._close(true);
     } catch (err) {
       this._error = localize('save_error', this.hass) + ((err && (err as any).message) || err);
+      this._saving = false;
+    }
+  }
+
+  // like deleting a card: gone right away, Home Assistant's undo brings it back
+  async _delete() {
+    this._saving = true;
+    this._error = '';
+    try {
+      const lovelace = getLovelace() || this.lovelace;
+      const deleted = await deleteSidebar();
+      this._close(true);
+      if (deleted) showDeletedToast(lovelace);
+    } catch (err) {
+      this._error = localize('delete_error', this.hass) + ': ' + ((err && (err as any).message) || err);
       this._saving = false;
     }
   }
@@ -3198,6 +3362,23 @@ class SidebarCardEditor extends LitElement {
         border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
         background: transparent;
         color: var(--primary-color, #03a9f4);
+      }
+      button.danger {
+        height: 40px;
+        margin-right: auto;
+        padding: 0 16px;
+        border: none;
+        border-radius: 20px;
+        background: transparent;
+        color: var(--error-color, #db4437);
+        font-size: 14px;
+        font-weight: 500;
+      }
+      button.danger:hover {
+        background: color-mix(in srgb, var(--error-color, #db4437) 10%, transparent);
+      }
+      .danger ~ .error {
+        margin-right: 0;
       }
       button[disabled] {
         opacity: 0.5;
@@ -3773,6 +3954,58 @@ function checkLovelace() {
 }
 
 // ##########################################################################################
+// ###   Deleting the sidebar
+// ##########################################################################################
+
+// Home Assistant's own wording where it has one, so the menu reads like the one of the cards
+function haText(hassObj: any, haKey: string, key: string) {
+  const text = hassObj && typeof hassObj.localize === 'function' ? hassObj.localize(haKey) : '';
+  return text || localize(key, hassObj);
+}
+
+// removes the sidebar from the dashboard config; true when something was stored
+async function deleteSidebar() {
+  if (current && current.draft) {
+    teardownSidebar();
+    return false;
+  }
+  const lovelace = getLovelace();
+  const stored = lovelace && (lovelace.rawConfig || lovelace.config);
+  if (!stored || !stored.sidebar || typeof lovelace.saveConfig !== 'function') return false;
+  const config = Object.assign({}, stored);
+  delete config.sidebar;
+  // hui-root puts the old config on its undo stack, like for any other change
+  await lovelace.saveConfig(config);
+  return true;
+}
+
+function showDeletedToast(lovelace: any) {
+  if (!lovelace || typeof lovelace.showToast !== 'function') return;
+  const hassObj = hass();
+  lovelace.showToast({
+    id: 'lovelace-edit',
+    message: haText(hassObj, 'ui.common.successfully_deleted', 'deleted'),
+    duration: 8000,
+    action: {
+      action: () => window.dispatchEvent(new CustomEvent('undo-change')),
+      text: haText(hassObj, 'ui.common.undo', 'undo'),
+    },
+  });
+}
+
+async function deleteSidebarWithToast() {
+  const lovelace = getLovelace();
+  try {
+    if (await deleteSidebar()) showDeletedToast(lovelace);
+  } catch (err) {
+    error2console('deleteSidebar', 'Deleting the sidebar failed', err);
+    if (lovelace && typeof lovelace.showToast === 'function') {
+      lovelace.showToast({ id: 'lovelace-edit', message: haText(hass(), 'ui.common.deleting_failed', 'delete_error') });
+    }
+  }
+}
+
+// ##########################################################################################
 // ###   Sidebar button in the header while editing the dashboard
 // ##########################################################################################
 
@@ -3847,7 +4080,7 @@ function onHeaderButtonClick() {
   const lovelace = getLovelace();
   if (!isEditable(lovelace)) return;
   const open = () => {
-    if (current && current.wrapper.isConnected) current.card._openEditor(current.draft ? current.config : undefined);
+    if (current && current.wrapper.isConnected) current.card._openEditor();
   };
   if (current && current.wrapper.isConnected) {
     open();
