@@ -2729,9 +2729,10 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   const css = createCSS(config, width, editMode);
   if (state.style.textContent !== css) state.style.textContent = css;
 
-  // only when the option changes, so the menu button can still expand the HA sidebar
+  // only when the option changes, so the menu button can still expand the HA sidebar;
+  // also puts back what an earlier visit (or version) left collapsed
   const wantDock = config.dockHassSidebar === true && !forced;
-  if (wantDock !== state.docked) applyDock(state, wantDock);
+  if (wantDock !== state.docked || (!wantDock && readDockBefore() !== null)) applyDock(state, wantDock);
 
   const hideHassSidebar =
     config.hideHassSidebar === true && !forced && !(config.showTopMenuOnMobile === true && width <= config.breakpoints.mobile);
