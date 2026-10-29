@@ -297,38 +297,32 @@ sidebar:
       tap_action:
         action: assist
   bottomButtonsLayout: row
+  bottomButtonsAlign: stretch
 ```
+
+`bottomButtonsLayout` is `row` (icon bar, default) or `list`. In the icon bar, `bottomButtonsAlign` places the buttons
+`left` (default), `center` or `right`, or `stretch`es them over the whole width in equal columns; buttons that do not
+fit (in `stretch`: that would get narrower than 52px) continue in a new row. `bottomButtonsShowName` adds the names
+under the icons.
 
 #### Bottom Custom Card
 
-`bottomCard` shows any Home Assistant card at the very bottom of the sidebar, below the bottom buttons.
-To start, add `bottomCard` to your sidebar config.
-`bottomCard` has 3 parts.
-
-1. `type` - This can be the default home assistant card or any custom card.
-2. `cardOptions` - Most cards need some configuration (i.e.: an entity). This should be placed under `cardOptions`.
-3. `cardStyle` (optional) - To make sure the card fits your sidebar style you can add extra CSS rules for the card to make it fit better.
-
-Example:
+`bottomCard` shows any Home Assistant card at the very bottom of the sidebar, below the bottom buttons. It takes the
+card's config exactly as the YAML of the card in the card editor, plus an optional `cardStyle` with CSS rules for the
+card, to make it fit your sidebar. (Older configs with the card settings under `cardOptions` still work.)
 
 ```yaml
 sidebar:
   bottomCard:
     type: horizontal-stack
-    cardOptions:
-      cards:
-        - type: "custom:button-card"
-          color_type: card
-          color: rgb(255, 255, 255)
-          icon: mdi:home
-        - type: "custom:button-card"
-          color_type: card
-          color: rgb(255, 255, 255)
-          icon: mdi:lightbulb
+    cards:
+      - type: tile
+        entity: sensor.outside_temperature
+      - type: tile
+        entity: light.living_room
     cardStyle: |
       :host {
         width: 100%;
-        background-color:#FFF;
       }
 ```
 

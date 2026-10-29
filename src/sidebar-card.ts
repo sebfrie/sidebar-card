@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.10.1';
+const SIDEBAR_CARD_VERSION = '0.11.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -73,6 +73,8 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_bottomButtons: 'Buttons / entities',
     label_bottomButtonsLayout: 'Layout',
     label_bottomButtonsShowName: 'Show names',
+    label_bottomButtonsAlign: 'Alignment',
+    opt_align_stretch: 'Full width',
     label_bottomCard: 'Card (YAML)',
     label_widthUnit: 'Unit',
     label_width_desktop: 'Desktop',
@@ -140,7 +142,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     show_view: 'Show in the menu',
     hide_view: 'Hide from the menu',
     helper_bottomCard:
-      'Any Home Assistant card at the very bottom of the sidebar, below the buttons. type: the card type, cardOptions: the settings of the card, cardStyle: (optional) CSS for the card. Example: type: tile, cardOptions: {entity: sensor.outside}',
+      'Any Home Assistant card at the very bottom of the sidebar, below the buttons: paste the YAML of a card as it is in the card editor. Optionally add cardStyle with CSS for the card.',
     label_shadow: 'Shadow',
     label_shadowSize: 'Shadow size',
     helper_shadow: 'Casts a shadow onto the dashboard next to the sidebar.',
@@ -198,6 +200,8 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_bottomButtons: 'Buttons / Entitäten',
     label_bottomButtonsLayout: 'Darstellung',
     label_bottomButtonsShowName: 'Namen anzeigen',
+    label_bottomButtonsAlign: 'Ausrichtung',
+    opt_align_stretch: 'Volle Breite',
     label_bottomCard: 'Karte (YAML)',
     label_widthUnit: 'Einheit',
     label_width_desktop: 'Desktop',
@@ -265,7 +269,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     show_view: 'Im Menü anzeigen',
     hide_view: 'Im Menü ausblenden',
     helper_bottomCard:
-      'Eine beliebige Home-Assistant-Karte ganz unten in der Seitenleiste, unter den Buttons. type: der Kartentyp, cardOptions: die Einstellungen der Karte, cardStyle: (optional) CSS für die Karte. Beispiel: type: tile, cardOptions: {entity: sensor.aussen}',
+      'Eine beliebige Home-Assistant-Karte ganz unten in der Seitenleiste, unter den Buttons: das YAML einer Karte so, wie es im Karteneditor steht. Optional zusätzlich cardStyle mit CSS für die Karte.',
     label_shadow: 'Schatten',
     label_shadowSize: 'Stärke des Schattens',
     helper_shadow: 'Wirft einen Schatten auf das Dashboard neben der Seitenleiste.',
@@ -641,6 +645,7 @@ class SidebarCard extends LitElement {
     const items = this._menuItems();
     const buttons = Array.isArray(c.bottomButtons) ? c.bottomButtons.filter((b) => b && typeof b === 'object') : [];
     const layout = c.bottomButtonsLayout === 'list' ? 'list' : 'row';
+    const align = ['center', 'right', 'stretch'].includes(c.bottomButtonsAlign) ? c.bottomButtonsAlign : 'left';
     const iconPosition = ['left', 'right', 'none'].includes(c.menuIcons) ? c.menuIcons : 'left';
     const showFooter = buttons.length > 0 || !!c.bottomCard;
     const editMode = this._isEditMode();
@@ -690,7 +695,7 @@ class SidebarCard extends LitElement {
               <div class="sidebar-footer" ?inert=${editMode}>
                 ${buttons.length > 0
                   ? html`
-                      <div class="buttons ${layout}">
+                      <div class="buttons ${layout}${layout === 'row' ? ' align-' + align : ''}">
                         ${buttons.map((button) => this._renderButton(button, layout, c.bottomButtonsShowName === true))}
                       </div>
                     `
@@ -1160,7 +1165,9 @@ class SidebarCard extends LitElement {
       return;
     }
 
-    const card = Object.assign({ type: bottomCard.type }, bottomCard.cardOptions);
+    // the card's own config, as in the card editor; cardOptions is how earlier versions nested it
+    const { cardStyle, cardOptions, ...card } = bottomCard;
+    Object.assign(card, cardOptions);
     log2console('bottomCard', 'Bottom card: ', card);
     if (!card.type) {
       error2console('bottomCard', 'Bottom card config error!');
@@ -1176,8 +1183,8 @@ class SidebarCard extends LitElement {
     cardElement.hass = this.hass || hass();
     this._bottomCardEl = cardElement;
 
-    if (bottomCard.cardStyle && bottomCard.cardStyle != '') {
-      const style = bottomCard.cardStyle;
+    if (cardStyle && cardStyle != '') {
+      const style = cardStyle;
       let iterations = 0;
       const interval = setInterval(function() {
         // the actual card is the child of hui-card; skip the placeholder shown while it loads
@@ -1390,9 +1397,9 @@ class SidebarCard extends LitElement {
       .edit-sidebar:hover {
         filter: brightness(0.95);
       }
-      /* the size of the icons in Home Assistant's own menus; the item colors them (red for delete) */
+      /* the size of the icons in Home Assistant's card menu; the item colors them (red for delete) */
       ha-dropdown-item {
-        --mdc-icon-size: 24px;
+        --mdc-icon-size: 20px;
       }
       /* as hui-card-edit-mode draws it over cards */
       .edit-overlay {
@@ -1553,9 +1560,20 @@ class SidebarCard extends LitElement {
 
       /* bottom buttons */
       .buttons.row {
-        display: grid;
-        grid-template-columns: repeat(auto-fill, minmax(52px, 1fr));
+        display: flex;
+        flex-wrap: wrap;
         gap: 8px;
+      }
+      .buttons.row.align-center {
+        justify-content: center;
+      }
+      .buttons.row.align-right {
+        justify-content: flex-end;
+      }
+      /* equal widths over the whole row; a new row once a button would get narrower than 52px */
+      .buttons.row.align-stretch {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
       }
       .buttons.list {
         display: flex;
@@ -1583,7 +1601,12 @@ class SidebarCard extends LitElement {
       .buttons.row .sb-button {
         flex-direction: column;
         justify-content: center;
+        min-width: 52px;
         min-height: 52px;
+      }
+      .buttons.row:not(.align-stretch) .sb-button {
+        flex: 0 0 auto;
+        max-width: 96px;
       }
       .buttons.list .sb-button {
         width: 100%;
@@ -1733,6 +1756,7 @@ const EDITOR_DEFAULTS: Record<string, any> = {
   menuIcons: 'left',
   menuPosition: 'top',
   bottomButtonsLayout: 'row',
+  bottomButtonsAlign: 'left',
   widthUnit: '%',
   menuFontSize: 18,
   menuItemSpacing: MENU_ITEM_SPACING,
@@ -1845,6 +1869,11 @@ function toFormData(config: any, hassObj: any) {
   data.dividers = source.dividers !== false;
   data.sidebarMenu = Array.isArray(data.sidebarMenu) ? data.sidebarMenu.filter((item) => item && typeof item === 'object') : [];
   data.bottomButtons = Array.isArray(data.bottomButtons) ? data.bottomButtons.filter((item) => item && typeof item === 'object') : [];
+  // shown (and saved) as a normal card config
+  if (data.bottomCard && typeof data.bottomCard === 'object' && data.bottomCard.cardOptions) {
+    const { cardOptions, cardStyle, ...card } = data.bottomCard;
+    data.bottomCard = Object.assign(card, cardOptions, cardStyle !== undefined ? { cardStyle } : {});
+  }
 
   Object.keys(EDITOR_DEFAULTS).forEach((key) => {
     if (isEmpty(data[key])) data[key] = EDITOR_DEFAULTS[key];
@@ -2232,7 +2261,17 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             },
           },
         },
-        ...(data.bottomButtonsLayout !== 'list' ? [{ name: 'bottomButtonsShowName', selector: { boolean: {} } }] : []),
+        ...(data.bottomButtonsLayout !== 'list'
+          ? [
+              dropdown('bottomButtonsAlign', [
+                { value: 'left', label: t('opt_left') },
+                { value: 'center', label: t('opt_pos_center') },
+                { value: 'right', label: t('opt_right') },
+                { value: 'stretch', label: t('opt_align_stretch') },
+              ]),
+              { name: 'bottomButtonsShowName', selector: { boolean: {} } },
+            ]
+          : []),
         { name: 'bottomCard', selector: { object: {} }, __helper: t('helper_bottomCard') },
       ],
     },
@@ -3161,7 +3200,7 @@ class SidebarCardEditor extends LitElement {
     const previous = this._data;
     const data = Object.assign({}, ev.detail.value);
     // dropdowns never end up empty
-    ['menuIcons', 'menuPosition', 'bottomButtonsLayout', 'widthUnit'].forEach((key) => {
+    ['menuIcons', 'menuPosition', 'bottomButtonsLayout', 'bottomButtonsAlign', 'widthUnit'].forEach((key) => {
       if (isEmpty(data[key])) data[key] = previous[key] || EDITOR_DEFAULTS[key];
     });
     if (data.widthUnit !== previous.widthUnit && data.width) {
