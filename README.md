@@ -77,6 +77,7 @@ Under `sidebar:` you can configure the following options:
 | `menuIcons` | string | optional | `left` | `left`, `right` or `none`: where menu icons are shown |
 | `menuFontSize` | number | optional | `18` | Font size of the menu in px (up to 40); the spacing of the items grows with it |
 | `menuPosition` | string | optional | `top` | `top` (right below the clocks), `center` or `bottom` of the free space |
+| `menuOffset` | number | optional | `0` | Space above the menu (`menuPosition: top`) or below it (`bottom`) in px |
 | `menuIconSize` | number | optional | grows with `menuFontSize` | Size of the menu icons in px |
 | `menuIconGap` | number | optional | grows with `menuFontSize` | Space between menu icon and text in px |
 | `menuItemSpacing` | number | optional | `4` | Space between menu items in px |
@@ -88,6 +89,7 @@ Under `sidebar:` you can configure the following options:
 | `iconColor` | string | optional | secondary text color | Color of the menu and button icons |
 | `accentColor` | string | optional | primary color | Color of the active menu item and of active buttons |
 | `dividerColor` | string | optional | divider color | Color of the divider lines |
+| `dividers` | boolean | optional | `true` | `false` hides the divider lines around the menu and above the footer |
 | `glass` | boolean | optional | `false` | Glass effect: the sidebar becomes semi-transparent and blurs the dashboard background behind it. With your own `background`, its transparency is used |
 | `blur` | number | optional | `12` | Strength of the glass effect's blur in px |
 | `shadow` | boolean | optional | `false` | Casts a shadow onto the dashboard next to the sidebar |
@@ -115,9 +117,11 @@ until the page is reloaded. For example: `https://myhomeassistant.duckdns.org/lo
 
 | Type | Options |
 | --- | --- |
-| `digitalClock` | `timeFormat` (`24`, `12`, `12ampm`; default `24`), `seconds` (default `false`), `size` (largest font size in px, default `60`; the time always fits the sidebar), `timeZone` |
-| `analogClock` | `seconds` (second hand, default `true`), `size` (px, default `220`, never wider than the sidebar), `timeZone` |
-| `date` | `format` (moment.js, default `dddd, D. MMMM` in German, `dddd, MMMM D` otherwise), `size` (px, default `22`), `timeZone` |
+| `digitalClock` | `timeFormat` (`24`, `12`, `12ampm`; default `24`), `seconds` (default `false`), `size` (largest font size in px, default `60`; the time always fits the sidebar), `color`, `timeZone` |
+| `analogClock` | `seconds` (second hand, default `true`), `size` (px, default `220`, never wider than the sidebar), `color` (hands), `secondsColor` (second hand), `timeZone` |
+| `date` | `format` (moment.js, default `dddd, D. MMMM` in German, `dddd, MMMM D` otherwise), `size` (px, default `22`), `color`, `timeZone` |
+
+Colors are theme color names as Home Assistant's color picker stores them (`red`, `primary`, ...) or any CSS color; without one, the sidebar's text color is used.
 
 `timeZone` is empty for the time zone of Home Assistant (default), `local` for this device's or any IANA name such as `America/New_York`.
 

@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.7.0';
+const SIDEBAR_CARD_VERSION = '0.8.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -110,6 +110,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     placeholder_path: '/dashboard-home/cameras',
     label_menuIconSize: 'Menu icon size',
     label_menuIconGap: 'Space between icon and text',
+    label_dividers: 'Show divider lines',
+    label_menuOffsetTop: 'Space above the menu',
+    label_menuOffsetBottom: 'Space below the menu',
+    label_color: 'Color',
+    label_handsColor: 'Color of the hands',
+    label_secondsColor: 'Color of the second hand',
     helper_template: 'Every line as <li>…</li>',
     label_timeZone: 'Time zone',
     opt_tz_local: 'This device',
@@ -223,6 +229,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     placeholder_path: '/dashboard-home/kameras',
     label_menuIconSize: 'Größe der Menü-Icons',
     label_menuIconGap: 'Abstand zwischen Icon und Text',
+    label_dividers: 'Trennlinien anzeigen',
+    label_menuOffsetTop: 'Abstand über dem Menü',
+    label_menuOffsetBottom: 'Abstand unter dem Menü',
+    label_color: 'Farbe',
+    label_handsColor: 'Farbe der Zeiger',
+    label_secondsColor: 'Farbe des Sekundenzeigers',
     helper_template: 'Jede Zeile als <li>…</li>',
     label_timeZone: 'Zeitzone',
     opt_tz_local: 'Dieses Gerät',
@@ -350,9 +362,9 @@ function formatTime(date: Date, format: string, seconds: boolean) {
 
 // Clocks and dates at the top of the sidebar, in the order of the list; each type has its own options
 const ELEMENT_TYPES: Record<string, { icon: string; defaults: Record<string, any> }> = {
-  digitalClock: { icon: 'mdi:clock-digital', defaults: { timeFormat: '24', seconds: false, size: 60, timeZone: '' } },
-  analogClock: { icon: 'mdi:clock-outline', defaults: { seconds: true, size: 220, timeZone: '' } },
-  date: { icon: 'mdi:calendar-today', defaults: { size: 22, timeZone: '' } },
+  digitalClock: { icon: 'mdi:clock-digital', defaults: { timeFormat: '24', seconds: false, size: 60, timeZone: '', color: '' } },
+  analogClock: { icon: 'mdi:clock-outline', defaults: { seconds: true, size: 220, timeZone: '', color: '', secondsColor: '' } },
+  date: { icon: 'mdi:calendar-today', defaults: { size: 22, timeZone: '', color: '' } },
 };
 
 // empty is the time zone of Home Assistant, 'local' this device's, anything else an IANA name
@@ -620,7 +632,7 @@ class SidebarCard extends LitElement {
             </style>
           `
         : ''}
-      <div class="sidebar-inner${isGlass(c) ? ' glass' : ''}${c.shadow ? ' shadow' : ''}${editMode ? ' editing' : ''}${c.showRight ? ' right' : ''}">
+      <div class="sidebar-inner${isGlass(c) ? ' glass' : ''}${c.dividers === false ? ' no-dividers' : ''}${c.shadow ? ' shadow' : ''}${editMode ? ' editing' : ''}${c.showRight ? ' right' : ''}">
         ${editMode
           ? html`
               <button class="edit-sidebar" title="${localize('edit_sidebar', this.hass)}" @click=${() => this._openEditor()}>
@@ -691,18 +703,24 @@ class SidebarCard extends LitElement {
     const size = elementOption(element, 'size');
     const seconds = !!elementOption(element, 'seconds');
     const now = zonedDate(this._now, resolveTimeZone(elementOption(element, 'timeZone'), this.hass));
+    const color = cssColor(element.color);
     if (element.type === 'digitalClock') {
       const time = formatTime(now, elementOption(element, 'timeFormat'), seconds);
       return html`
-        <h1 class="digitalClock${seconds ? ' with-seconds' : ''}" style="--sb-size: ${size}px">${time}</h1>
+        <h1 class="digitalClock${seconds ? ' with-seconds' : ''}" style="--sb-size: ${size}px;${color ? ` color: ${color};` : ''}">${time}</h1>
       `;
     }
     if (element.type === 'analogClock') {
       const hours = now.getHours() % 12;
       const minutes = now.getMinutes();
       const secs = now.getSeconds();
+      const secondsColor = cssColor(element.secondsColor);
+      const style =
+        `--sb-size: ${size}px;` +
+        (color ? ` --clock-hands-color: ${color}; --clock-middle-border: ${color};` : '') +
+        (secondsColor ? ` --clock-seconds-hand-color: ${secondsColor};` : '');
       return html`
-        <div class="clock" style="--sb-size: ${size}px">
+        <div class="clock" style="${style}">
           <div class="wrap">
             <span class="hour" style="transform: rotate(${hours * 30 + minutes * 0.5}deg)"></span>
             <span class="minute" style="transform: rotate(${minutes * 6 + secs * 0.1}deg)"></span>
@@ -721,7 +739,7 @@ class SidebarCard extends LitElement {
       .locale(language)
       .format(element.format || datePresets(language)[0]);
     return html`
-      <h2 class="date" style="--sb-size: ${size}px">${date}</h2>
+      <h2 class="date" style="--sb-size: ${size}px;${color ? ` color: ${color};` : ''}">${date}</h2>
     `;
   }
 
@@ -1117,6 +1135,7 @@ class SidebarCard extends LitElement {
       '--sidebar-menu-font-size': c.menuFontSize ? `${c.menuFontSize}px` : undefined,
       '--sidebar-menu-icon-size': c.menuIconSize ? `${c.menuIconSize}px` : undefined,
       '--sidebar-menu-icon-gap': c.menuIconGap !== undefined && c.menuIconGap !== null && c.menuIconGap !== '' ? `${c.menuIconGap}px` : undefined,
+      '--sidebar-menu-offset': c.menuOffset ? `${c.menuOffset}px` : undefined,
     };
     Object.keys(properties).forEach((name) => {
       const value = properties[name];
@@ -1220,11 +1239,19 @@ class SidebarCard extends LitElement {
         container-type: inline-size;
       }
       /* menuPosition: right after the clocks, in the middle of the free space or at its bottom */
+      .menu-block.top {
+        margin-top: var(--sidebar-menu-offset, 0px);
+      }
       .menu-block.center {
         margin-block: auto;
       }
       .menu-block.bottom {
         margin-top: auto;
+        margin-bottom: var(--sidebar-menu-offset, 0px);
+      }
+      .no-dividers .sidebarMenu,
+      .no-dividers .sidebar-footer {
+        border-color: transparent;
       }
       .sidebar-footer {
         flex: 0 0 auto;
@@ -1557,6 +1584,7 @@ const EDITOR_DEFAULTS: Record<string, any> = {
   widthUnit: '%',
   menuFontSize: 18,
   menuItemSpacing: MENU_ITEM_SPACING,
+  menuOffset: 0,
   blur: GLASS_BLUR,
   shadowSize: SHADOW_SIZE,
 };
@@ -1619,8 +1647,9 @@ function fromElementFormData(data: any, language: string) {
     if (element.format === datePresets(language)[0]) delete element.format;
   }
   Object.keys(element).forEach((key) => {
-    if (key !== 'type' && (isEmpty(element[key]) || element[key] === defaults[key])) delete element[key];
+    if (key !== 'type' && (isEmpty(element[key]) || element[key] === defaults[key] || element[key] === 'theme')) delete element[key];
   });
+  if (element.type === 'analogClock' && element.seconds === false) delete element.secondsColor;
   // type first, so the YAML reads well
   return Object.assign({ type: element.type }, element);
 }
@@ -1661,6 +1690,7 @@ function toFormData(config: any, hassObj: any) {
   data.elements = elementsOf(source).map((element) => toElementFormData(element, language));
   LEGACY_KEYS.forEach((key) => delete data[key]);
   data.glass = isGlass(source);
+  data.dividers = source.dividers !== false;
   data.sidebarMenu = Array.isArray(data.sidebarMenu) ? data.sidebarMenu.filter((item) => item && typeof item === 'object') : [];
   data.bottomButtons = Array.isArray(data.bottomButtons) ? data.bottomButtons.filter((item) => item && typeof item === 'object') : [];
 
@@ -1683,6 +1713,9 @@ function fromFormData(formData: any, hassObj: any) {
     delete data.blur;
   }
   if (!data.shadow) delete data.shadowSize;
+  // divider lines are on unless switched off
+  if (data.dividers !== false) delete data.dividers;
+  if (data.menuPosition === 'center') delete data.menuOffset;
   // icon size and gap equal to what the font size gives are not stored, so they keep following it
   const fontSize = data.menuFontSize || EDITOR_DEFAULTS.menuFontSize;
   if (data.menuIcons === 'none' || data.menuIconSize === autoIconSize(fontSize)) delete data.menuIconSize;
@@ -1781,11 +1814,25 @@ function timeZoneField(hassObj: any) {
   };
 }
 
+// HA's color picker with "from the theme" as its default, as in the design section
+function colorField(name: string, themeColor: string, hassObj: any, extra: any = {}) {
+  return Object.assign(
+    {
+      name,
+      selector: {
+        ui_color: { default_color: 'theme', extra_options: [{ value: 'theme', label: localize('opt_color_theme', hassObj), display_color: themeColor }] },
+      },
+    },
+    extra,
+  );
+}
+
 function elementSchema(element: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
   const language = languageOf(hassObj);
   const now = new Date();
   const defaults = ELEMENT_TYPES[element.type].defaults;
+  const textColor = 'var(--primary-text-color, #212121)';
   if (element.type === 'digitalClock') {
     return [
       dropdown(
@@ -1794,6 +1841,7 @@ function elementSchema(element: any, hassObj: any) {
       ),
       { name: 'seconds', selector: { boolean: {} } },
       slider('size', 32, 120, 2, 'px', defaults.size, { __helper: t('helper_digitalSize') }),
+      colorField('color', textColor, hassObj),
       timeZoneField(hassObj),
     ];
   }
@@ -1801,6 +1849,8 @@ function elementSchema(element: any, hassObj: any) {
     return [
       { name: 'seconds', selector: { boolean: {} }, __label: t('label_secondHand') },
       slider('size', 100, 400, 10, 'px', defaults.size),
+      colorField('color', textColor, hassObj, { __label: t('label_handsColor') }),
+      ...(element.seconds ? [colorField('secondsColor', '#ff4b3e', hassObj)] : []),
       timeZoneField(hassObj),
     ];
   }
@@ -1817,6 +1867,7 @@ function elementSchema(element: any, hassObj: any) {
     dropdown('formatPreset', options),
     ...(element.formatPreset === CUSTOM_DATE_FORMAT ? [{ name: 'format', selector: { text: {} }, __helper: t('helper_dateFormat') }] : []),
     slider('size', 14, 40, 1, 'px', defaults.size),
+    colorField('color', textColor, hassObj),
     timeZoneField(hassObj),
   ];
 }
@@ -1940,7 +1991,7 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           itemName: (item: any) => t('element_' + item.type),
           itemSummary: (item: any) => elementSummary(item, hassObj),
           itemSchema: (item: any) => elementSchema(item, hassObj),
-          itemSchemaKey: (item: any) => [item.type, item.formatPreset === CUSTOM_DATE_FORMAT].join('|'),
+          itemSchemaKey: (item: any) => [item.type, item.formatPreset === CUSTOM_DATE_FORMAT, !!item.seconds].join('|'),
           normalizeItem: normalizeElement,
           emptyText: t('no_elements'),
         },
@@ -1985,6 +2036,13 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             ]
           : []),
         slider('menuItemSpacing', 0, 24, 1, 'px', EDITOR_DEFAULTS.menuItemSpacing),
+        ...(data.menuPosition !== 'center'
+          ? [
+              slider('menuOffset', 0, 200, 2, 'px', EDITOR_DEFAULTS.menuOffset, {
+                __label: t(data.menuPosition === 'bottom' ? 'label_menuOffsetBottom' : 'label_menuOffsetTop'),
+              }),
+            ]
+          : []),
         { name: 'template', selector: { template: {} }, __helper: t('helper_template') },
       ],
     },
@@ -2075,9 +2133,10 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             color('textColor', 'var(--primary-text-color, #212121)'),
             color('iconColor', 'var(--secondary-text-color, #727272)'),
             color('accentColor', 'var(--primary-color, #03a9f4)'),
-            color('dividerColor', 'var(--divider-color, #e0e0e0)'),
+            ...(data.dividers ? [color('dividerColor', 'var(--divider-color, #e0e0e0)')] : []),
           ],
         },
+        { name: 'dividers', selector: { boolean: {} } },
         { name: 'glass', selector: { boolean: {} }, __helper: t('helper_glass') },
         ...(data.glass ? [slider('blur', 2, 30, 1, 'px', GLASS_BLUR)] : []),
         { name: 'shadow', selector: { boolean: {} }, __helper: t('helper_shadow') },
@@ -2462,12 +2521,42 @@ class SidebarListField extends LitElement {
     handle.addEventListener('pointercancel', end);
   }
 
+  updated() {
+    // the action editor of an opened entry renders a moment later
+    [0, 150, 500, 1200].forEach((delay) => setTimeout(() => hideScriptHelp(this.shadowRoot), delay));
+  }
+
   static get styles() {
     return listStyles;
   }
 }
 
 if (!customElements.get('ha-form-sidebar_list')) customElements.define('ha-form-sidebar_list', SidebarListField);
+
+// HA's action editor links its help button to /actions/<action>, a page that does not exist for one's own scripts
+// (script.<name>); hide that button there, keep it for the real script actions
+const SCRIPT_HELP_CSS = `.description a[href*="/actions/script."]:not([href$="script.turn_on"]):not([href$="script.turn_off"]):not([href$="script.toggle"]):not([href$="script.reload"]) { display: none !important; }`;
+
+function findDeep(root: any, localName: string, found: any[] = [], depth = 0) {
+  if (!root || depth > 12) return found;
+  root.querySelectorAll('*').forEach((element: any) => {
+    if (element.localName === localName) found.push(element);
+    if (element.shadowRoot) findDeep(element.shadowRoot, localName, found, depth + 1);
+  });
+  return found;
+}
+
+function hideScriptHelp(root: any) {
+  findDeep(root, 'ha-service-control').forEach((control: any) => {
+    const shadow = control.shadowRoot;
+    if (!shadow || control.__sidebarScriptHelp) return;
+    control.__sidebarScriptHelp = true;
+    const style = document.createElement('style');
+    style.textContent = SCRIPT_HELP_CSS;
+    // before Lit's own content, which Lit leaves alone
+    shadow.prepend(style);
+  });
+}
 
 // The views of the dashboard for ha-form ("type: sidebar_views"), each with an eye to show or hide it in the menu.
 // The value is the list of hidden view paths; the views come with the schema, so added or deleted views show up at once.
@@ -2621,10 +2710,12 @@ class SidebarPathsField extends LitElement {
           align-items: center;
           gap: 4px;
         }
+        /* without the space HA's text field keeps below itself for hints, so the button sits in its middle */
         .path {
           display: block;
           flex: 1 1 auto;
           min-width: 0;
+          --ha-input-padding-bottom: 0px;
         }
         .paths:empty + .add-button {
           margin-top: 0;
@@ -2850,6 +2941,8 @@ class SidebarCardEditor extends LitElement {
       d.viewMenu,
       d.menuIcons,
       d.menuFontSize,
+      d.menuPosition,
+      d.dividers,
       d.bottomButtonsLayout,
       d.widthUnit,
       d.glass,
