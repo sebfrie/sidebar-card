@@ -47,9 +47,11 @@ views:
 
 ### Editing in the dashboard editor
 
-You do not need YAML for the sidebar. Add an empty `sidebar: {}` once in the raw configuration editor of the dashboard,
-then open the dashboard's edit mode: a pencil flag sticks out of the sidebar's outer edge. It opens a panel on the other
-side of the screen with all options below, shows every change live and saves it into the dashboard config. Clocks and
+You do not need YAML for the sidebar. Open the dashboard's edit mode: the header gets a sidebar button next to undo/redo.
+On a dashboard without sidebar it adds one with a digital clock, the date and the menu of the views; it is stored when
+you save the settings and goes away again when you cancel. The button, and the pencil flag that sticks out of the
+sidebar's outer edge, open a panel on the other side of the screen with all options below, show every change live and
+save it into the dashboard config. Clocks and
 dates are a list there: add them with a button, drag them into order, open one to change it. The views themselves stay
 normal Home Assistant views with native cards that you edit as usual.
 

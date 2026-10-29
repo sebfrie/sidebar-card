@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.8.0';
+const SIDEBAR_CARD_VERSION = '0.9.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -29,6 +29,7 @@ import { forwardHaptic, navigate, toggleEntity } from 'custom-card-helpers';
 const STRINGS: Record<string, Record<string, string>> = {
   en: {
     edit_sidebar: 'Edit sidebar',
+    add_sidebar: 'Add sidebar',
     editor_title: 'Sidebar configuration',
     element_digitalClock: 'Digital clock',
     element_analogClock: 'Analog clock',
@@ -148,6 +149,7 @@ const STRINGS: Record<string, Record<string, string>> = {
   },
   de: {
     edit_sidebar: 'Seitenleiste bearbeiten',
+    add_sidebar: 'Seitenleiste hinzufügen',
     editor_title: 'Seitenleiste anpassen',
     element_digitalClock: 'Digitaluhr',
     element_analogClock: 'Analoge Uhr',
@@ -1168,10 +1170,11 @@ class SidebarCard extends LitElement {
     return !!(lovelace && lovelace.editMode && lovelace.mode !== 'yaml' && typeof lovelace.saveConfig === 'function');
   }
 
-  _openEditor() {
+  // initial: the config to start from when the dashboard has no sidebar yet
+  _openEditor(initial?: any) {
     if (this._editor) return;
     const lovelace = this.lovelace;
-    const stored = (lovelace.rawConfig || lovelace.config || {}).sidebar || {};
+    const stored = initial || (lovelace.rawConfig || lovelace.config || {}).sidebar || {};
     const editor: any = document.createElement('sidebar-card-editor');
     editor.hass = this.hass;
     editor.lovelace = lovelace;
@@ -3545,6 +3548,7 @@ interface SidebarState {
   hassSidebarHidden: boolean;
   headerHidden: boolean;
   docked: boolean;
+  draft: boolean; // added from the header button and not saved yet
 }
 
 let current: SidebarState | null = null;
@@ -3686,6 +3690,11 @@ function previewSidebar(sidebarConfig: any) {
 function endPreview(saved: boolean) {
   if (!current) return;
   current.previewing = false;
+  // a new sidebar that was not saved goes away again
+  if (current.draft && !saved) {
+    teardownSidebar();
+    return;
+  }
   // when saved, the watcher picks up the new dashboard config
   if (!saved) applyConfig(current, current.config);
 }
@@ -3751,9 +3760,10 @@ function checkLovelace() {
 
   const sidebarConfig = lovelace.config && lovelace.config.sidebar;
   if (!sidebarConfig) {
-    teardownSidebar();
+    if (!state.draft) teardownSidebar();
     return;
   }
+  state.draft = false;
   const json = JSON.stringify(sidebarConfig);
   if (json !== state.configJson) {
     state.config = clone(sidebarConfig);
@@ -3763,15 +3773,100 @@ function checkLovelace() {
 }
 
 // ##########################################################################################
+// ###   Sidebar button in the header while editing the dashboard
+// ##########################################################################################
+
+const HEADER_BUTTON_ID = 'sidebar-card-header-button';
+const HEADER_TOOLTIP_ID = 'sidebar-card-header-tooltip';
+// what the header button adds to a dashboard without sidebar
+const DEFAULT_SIDEBAR = { viewMenu: true, elements: [{ type: 'digitalClock' }, { type: 'date' }] };
+const MDI_DOCK_LEFT = 'M20 4H4A2 2 0 0 0 2 6V18A2 2 0 0 0 4 20H20A2 2 0 0 0 22 18V6A2 2 0 0 0 20 4M20 18H9V6H20Z';
+const MDI_DOCK_RIGHT = 'M20 4H4A2 2 0 0 0 2 6V18A2 2 0 0 0 4 20H20A2 2 0 0 0 22 18V6A2 2 0 0 0 20 4M15 18H4V6H15Z';
+let observedHeader: any = null;
+let headerObserver: MutationObserver | null = null;
+
+function isEditable(lovelace: any) {
+  return !!(
+    lovelace &&
+    lovelace.editMode &&
+    lovelace.mode !== 'yaml' &&
+    typeof lovelace.saveConfig === 'function' &&
+    isCurrentDashboard(lovelace)
+  );
+}
+
+// HA renders a new toolbar each time edit mode starts, so the button is put back whenever it is missing
+function ensureHeaderButton() {
+  const root = getRoot();
+  const shadow = root && root.shadowRoot;
+  if (!shadow) return;
+  // right when HA renders the edit mode toolbar, not up to 500 ms later
+  const header = shadow.querySelector('.header');
+  if (header && header !== observedHeader && typeof MutationObserver !== 'undefined') {
+    if (headerObserver) headerObserver.disconnect();
+    headerObserver = new MutationObserver(() => ensureHeaderButton());
+    headerObserver.observe(header, { childList: true, subtree: true });
+    observedHeader = header;
+  }
+  const lovelace = getLovelace();
+  const actions = isEditable(lovelace) ? shadow.querySelector('.edit-mode .action-items') : null;
+  let button: any = shadow.getElementById(HEADER_BUTTON_ID);
+  let tooltip: any = shadow.getElementById(HEADER_TOOLTIP_ID);
+  if (!actions || (button && button.parentNode !== actions)) {
+    if (button) button.remove();
+    if (tooltip) tooltip.remove();
+    if (!actions) return;
+    button = tooltip = null;
+  }
+  if (!button) {
+    button = document.createElement('ha-icon-button');
+    button.id = HEADER_BUTTON_ID;
+    button.addEventListener('click', onHeaderButtonClick);
+    // HA's tooltip like the buttons next to it; without it the browser shows the label
+    if (customElements.get('ha-tooltip')) {
+      button.setAttribute('hide-title', '');
+      tooltip = document.createElement('ha-tooltip');
+      tooltip.id = HEADER_TOOLTIP_ID;
+      tooltip.setAttribute('placement', 'bottom');
+      tooltip.setAttribute('for', HEADER_BUTTON_ID);
+    }
+    // in front of undo/redo, outside the part Home Assistant renders into
+    if (tooltip) actions.prepend(button, tooltip);
+    else actions.prepend(button);
+  }
+  const sidebarConfig = (current && current.applied) || lovelace.config.sidebar;
+  const label = localize(sidebarConfig ? 'edit_sidebar' : 'add_sidebar', hass());
+  const path = sidebarConfig && sidebarConfig.showRight ? MDI_DOCK_RIGHT : MDI_DOCK_LEFT;
+  if (button.label !== label) button.label = label;
+  if (button.path !== path) button.path = path;
+  if (tooltip && tooltip.textContent !== label) tooltip.textContent = label;
+}
+
+// opens the sidebar settings; a dashboard without sidebar gets the default one, kept when saved
+function onHeaderButtonClick() {
+  const lovelace = getLovelace();
+  if (!isEditable(lovelace)) return;
+  const open = () => {
+    if (current && current.wrapper.isConnected) current.card._openEditor(current.draft ? current.config : undefined);
+  };
+  if (current && current.wrapper.isConnected) {
+    open();
+    return;
+  }
+  buildSidebar(lovelace.config.sidebar ? undefined : clone(DEFAULT_SIDEBAR)).then(open);
+}
+
+// ##########################################################################################
 // ###   The Sidebar Card code base initialisation
 // ##########################################################################################
 
-async function buildSidebar() {
+// draft: a sidebar config to show on a dashboard that has none (not saved until the editor saves it)
+async function buildSidebar(draft?: any) {
   // startup, location-changed and the watcher can all get here; build only once (#152)
   if (building) return;
   building = true;
   try {
-    await doBuildSidebar();
+    await doBuildSidebar(draft);
   } catch (err) {
     error2console('buildSidebar', 'Building the sidebar failed', err);
   } finally {
@@ -3779,15 +3874,16 @@ async function buildSidebar() {
   }
 }
 
-async function doBuildSidebar() {
+async function doBuildSidebar(draft?: any) {
   const lovelace = await getConfig();
   if (current && !current.wrapper.isConnected) dropState(current);
-  if (!lovelace.config.sidebar) {
+  const stored = lovelace.config.sidebar;
+  if (!stored && !draft) {
     log2console('buildSidebar', 'No sidebar in config found!');
     return;
   }
 
-  const sidebarConfig = clone(lovelace.config.sidebar);
+  const sidebarConfig = clone(stored || draft);
   if (!isValidWidth(sidebarConfig)) {
     error2console('buildSidebar', 'Error sidebar in width config!');
     return;
@@ -3835,9 +3931,9 @@ async function doBuildSidebar() {
   const state: SidebarState = {
     lovelace,
     config: sidebarConfig,
-    configJson: JSON.stringify(lovelace.config.sidebar),
+    configJson: stored ? JSON.stringify(stored) : '',
     applied: sidebarConfig,
-    previewing: false,
+    previewing: !stored,
     appLayout,
     wrapper,
     sidebar,
@@ -3850,6 +3946,7 @@ async function doBuildSidebar() {
     hassSidebarHidden: false,
     headerHidden: false,
     docked: false,
+    draft: !stored,
   };
   current = state;
 
@@ -3883,4 +3980,7 @@ buildSidebar();
 // The new panel is not rendered yet when location-changed fires, so checking the DOM here missed
 // dashboards opened from another page (#112, #137). buildSidebar waits for it and skips built ones.
 window.addEventListener('location-changed', () => buildSidebar());
-setInterval(checkLovelace, 500);
+setInterval(() => {
+  checkLovelace();
+  ensureHeaderButton();
+}, 500);
