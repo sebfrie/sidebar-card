@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.4.0';
+const SIDEBAR_CARD_VERSION = '0.5.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -57,7 +57,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_formatPreset: 'Date format',
     label_format: 'Custom date format',
     label_glass: 'Glass effect',
-    label_blur: 'Blur',
+    label_blur: 'Blur strength',
     label_timeFormat: 'Time format',
     label_viewMenu: 'Show the views of this dashboard',
     label_viewMenuExclude: 'Hide these views',
@@ -110,13 +110,20 @@ const STRINGS: Record<string, Record<string, string>> = {
     helper_width: '0 hides the sidebar on that screen size.',
     helper_hideOnPath: 'Path from the address bar, e.g. /dashboard-home/cameras',
     helper_template: 'Every line as <li>…</li>',
-    helper_color: 'CSS color, e.g. #ffffff, rgba(0, 0, 0, 0.4) or var(--primary-color)',
+    label_timeZone: 'Time zone',
+    opt_tz_local: 'This device',
+    opt_tz_server: 'Home Assistant',
+    reset_default: 'Reset to default',
+    label_menuItemSpacing: 'Space between menu items',
+    label_shadow: 'Shadow',
+    label_shadowSize: 'Shadow size',
+    helper_shadow: 'Casts a shadow onto the dashboard next to the sidebar.',
     helper_glass:
       'Makes the sidebar semi-transparent and blurs the dashboard background behind it. With your own background color, its transparency is used, e.g. rgba(0, 0, 0, 0.4).',
     helper_digitalSize: 'Largest size; the time always fits the sidebar.',
     helper_hideTopMenu:
-      'It stays visible in edit mode. To edit the dashboard, add ?edit=1 to its address; ?sidebar=true shows the header and sidebar of Home Assistant again until the page is reloaded.',
-    helper_hideHassSidebar: 'Removes it completely, including the menu button. ?sidebar=true in the address shows it again.',
+      'It stays visible in edit mode. To edit the dashboard, add ?edit=1 to its address; ?haUi=true shows the header and sidebar of Home Assistant again until the page is reloaded.',
+    helper_hideHassSidebar: 'Removes it completely, including the menu button. ?haUi=true in the address shows it again.',
     helper_dockHassSidebar: 'While this dashboard is open, only the narrow icon bar is shown; the menu button expands it.',
   },
   de: {
@@ -149,7 +156,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_formatPreset: 'Datumsformat',
     label_format: 'Eigenes Datumsformat',
     label_glass: 'Glas-Effekt',
-    label_blur: 'Unschärfe',
+    label_blur: 'Stärke der Unschärfe',
     label_timeFormat: 'Zeitformat',
     label_viewMenu: 'Views dieses Dashboards anzeigen',
     label_viewMenuExclude: 'Diese Views ausblenden',
@@ -202,13 +209,20 @@ const STRINGS: Record<string, Record<string, string>> = {
     helper_width: '0 blendet die Seitenleiste bei dieser Bildschirmgröße aus.',
     helper_hideOnPath: 'Pfad aus der Adresszeile, z. B. /dashboard-home/kameras',
     helper_template: 'Jede Zeile als <li>…</li>',
-    helper_color: 'CSS-Farbe, z. B. #ffffff, rgba(0, 0, 0, 0.4) oder var(--primary-color)',
+    label_timeZone: 'Zeitzone',
+    opt_tz_local: 'Dieses Gerät',
+    opt_tz_server: 'Home Assistant',
+    reset_default: 'Auf Standard zurücksetzen',
+    label_menuItemSpacing: 'Abstand zwischen Menüeinträgen',
+    label_shadow: 'Schatten',
+    label_shadowSize: 'Stärke des Schattens',
+    helper_shadow: 'Wirft einen Schatten auf das Dashboard neben der Seitenleiste.',
     helper_glass:
       'Macht die Seitenleiste halbtransparent und den Dashboard-Hintergrund dahinter unscharf. Bei eigener Hintergrundfarbe zählt deren Transparenz, z. B. rgba(0, 0, 0, 0.4).',
     helper_digitalSize: 'Höchstgröße; die Uhrzeit passt immer in die Seitenleiste.',
     helper_hideTopMenu:
-      'Im Bearbeitungsmodus bleibt sie sichtbar. Zum Bearbeiten ?edit=1 an die Adresse des Dashboards anhängen; ?sidebar=true zeigt Kopf- und Seitenleiste von Home Assistant bis zum Neuladen wieder.',
-    helper_hideHassSidebar: 'Blendet sie komplett aus, auch den Menü-Button. ?sidebar=true an der Adresse zeigt sie wieder.',
+      'Im Bearbeitungsmodus bleibt sie sichtbar. Zum Bearbeiten ?edit=1 an die Adresse des Dashboards anhängen; ?haUi=true zeigt Kopf- und Seitenleiste von Home Assistant bis zum Neuladen wieder.',
+    helper_hideHassSidebar: 'Blendet sie komplett aus, auch den Menü-Button. ?haUi=true an der Adresse zeigt sie wieder.',
     helper_dockHassSidebar: 'Solange dieses Dashboard offen ist, zeigt Home Assistant nur die schmale Icon-Leiste; der Menü-Button klappt sie auf.',
   },
 };
@@ -308,10 +322,69 @@ function formatTime(date: Date, format: string, seconds: boolean) {
 
 // Clocks and dates at the top of the sidebar, in the order of the list; each type has its own options
 const ELEMENT_TYPES: Record<string, { icon: string; defaults: Record<string, any> }> = {
-  digitalClock: { icon: 'mdi:clock-digital', defaults: { timeFormat: '24', seconds: false, size: 60 } },
-  analogClock: { icon: 'mdi:clock-outline', defaults: { seconds: true, size: 220 } },
-  date: { icon: 'mdi:calendar-today', defaults: { size: 22 } },
+  digitalClock: { icon: 'mdi:clock-digital', defaults: { timeFormat: '24', seconds: false, size: 60, timeZone: 'local' } },
+  analogClock: { icon: 'mdi:clock-outline', defaults: { seconds: true, size: 220, timeZone: 'local' } },
+  date: { icon: 'mdi:calendar-today', defaults: { size: 22, timeZone: 'local' } },
 };
+
+// 'local' is this device's time zone, 'server' the one of Home Assistant, anything else an IANA name
+function resolveTimeZone(timeZone: string, hassObj: any) {
+  if (!timeZone || timeZone === 'local') return undefined;
+  if (timeZone === 'server') return hassObj && hassObj.config ? hassObj.config.time_zone : undefined;
+  return timeZone;
+}
+
+const zoneFormatters = new Map<string, Intl.DateTimeFormat | null>();
+
+// a Date whose local fields show the wall clock of the time zone, so moment and the clock hands can use it as is
+function zonedDate(date: Date, timeZone?: string) {
+  if (!timeZone) return date;
+  if (!zoneFormatters.has(timeZone)) {
+    try {
+      zoneFormatters.set(
+        timeZone,
+        new Intl.DateTimeFormat('en-US', {
+          timeZone,
+          hourCycle: 'h23',
+          year: 'numeric',
+          month: 'numeric',
+          day: 'numeric',
+          hour: 'numeric',
+          minute: 'numeric',
+          second: 'numeric',
+        }),
+      );
+    } catch {
+      zoneFormatters.set(timeZone, null); // unknown time zone: device time
+    }
+  }
+  const formatter = zoneFormatters.get(timeZone);
+  if (!formatter) return date;
+  const parts: Record<string, number> = {};
+  formatter.formatToParts(date).forEach((part) => (parts[part.type] = Number(part.value)));
+  return new Date(parts.year, parts.month - 1, parts.day, parts.hour % 24, parts.minute, parts.second);
+}
+
+// the IANA time zones of the browser, with their current offset
+function timeZoneOptions() {
+  const supported = (Intl as any).supportedValuesOf;
+  const zones: string[] = supported
+    ? supported('timeZone')
+    : ['Europe/Berlin', 'Europe/London', 'Europe/Paris', 'Europe/Madrid', 'Europe/Rome', 'America/New_York', 'America/Chicago', 'America/Los_Angeles', 'Asia/Tokyo', 'Asia/Shanghai', 'Australia/Sydney', 'UTC'];
+  const now = new Date();
+  return zones.map((zone) => {
+    let offset = '';
+    try {
+      const part = new Intl.DateTimeFormat('en-US', { timeZone: zone, timeZoneName: 'shortOffset' } as any)
+        .formatToParts(now)
+        .find((item) => item.type === 'timeZoneName');
+      offset = part ? part.value.replace('GMT', 'UTC') : '';
+    } catch {
+      // older browsers without shortOffset
+    }
+    return { value: zone, label: offset ? `${zone.replace(/_/g, ' ')} (${offset})` : zone.replace(/_/g, ' ') };
+  });
+}
 
 // the elements list, or the one older configs describe with digitalClock, clock and date
 function elementsOf(config: any): any[] {
@@ -328,6 +401,48 @@ function elementsOf(config: any): any[] {
 }
 
 const GLASS_BLUR = 12;
+const SHADOW_SIZE = 12;
+const MENU_ITEM_SPACING = 4;
+
+// theme color names (as HA's color picker stores them) become theme variables
+const THEME_COLORS = [
+  'primary',
+  'accent',
+  'red',
+  'pink',
+  'purple',
+  'deep-purple',
+  'indigo',
+  'blue',
+  'light-blue',
+  'cyan',
+  'teal',
+  'green',
+  'light-green',
+  'lime',
+  'yellow',
+  'amber',
+  'orange',
+  'deep-orange',
+  'brown',
+  'light-grey',
+  'grey',
+  'dark-grey',
+  'blue-grey',
+  'black',
+  'white',
+];
+function cssColor(color: any) {
+  if (color === undefined || color === null || color === '') return undefined;
+  return THEME_COLORS.includes(color) ? `var(--${color}-color)` : String(color);
+}
+
+// falls towards the dashboard
+function shadowCss(config: any) {
+  const size = Number(config.shadowSize) || SHADOW_SIZE;
+  const offset = Math.round(size / 3) * (config.showRight ? -1 : 1);
+  return `${offset}px 0 ${size}px rgba(0, 0, 0, 0.3)`;
+}
 
 // glass: semi-transparent and blurring; older configs only had blur
 function isGlass(config: any) {
@@ -469,7 +584,7 @@ class SidebarCard extends LitElement {
             </style>
           `
         : ''}
-      <div class="sidebar-inner${isGlass(c) ? ' glass' : ''}${editMode ? ' editing' : ''}${c.showRight ? ' right' : ''}">
+      <div class="sidebar-inner${isGlass(c) ? ' glass' : ''}${c.shadow ? ' shadow' : ''}${editMode ? ' editing' : ''}${c.showRight ? ' right' : ''}">
         ${editMode
           ? html`
               <button class="edit-sidebar" title="${localize('edit_sidebar', this.hass)}" @click=${() => this._openEditor()}>
@@ -537,14 +652,14 @@ class SidebarCard extends LitElement {
   _renderElement(element: any) {
     const size = elementOption(element, 'size');
     const seconds = !!elementOption(element, 'seconds');
+    const now = zonedDate(this._now, resolveTimeZone(elementOption(element, 'timeZone'), this.hass));
     if (element.type === 'digitalClock') {
-      const time = formatTime(this._now, elementOption(element, 'timeFormat'), seconds);
+      const time = formatTime(now, elementOption(element, 'timeFormat'), seconds);
       return html`
         <h1 class="digitalClock${seconds ? ' with-seconds' : ''}" style="--sb-size: ${size}px">${time}</h1>
       `;
     }
     if (element.type === 'analogClock') {
-      const now = this._now;
       const hours = now.getHours() % 12;
       const minutes = now.getMinutes();
       const secs = now.getSeconds();
@@ -564,7 +679,7 @@ class SidebarCard extends LitElement {
       `;
     }
     const language = languageOf(this.hass);
-    const date = moment(this._now)
+    const date = moment(now)
       .locale(language)
       .format(element.format || datePresets(language)[0]);
     return html`
@@ -953,11 +1068,13 @@ class SidebarCard extends LitElement {
   _applyDesign() {
     const c = this.config || {};
     const properties: Record<string, string | undefined> = {
-      '--sidebar-background': c.background,
-      '--sidebar-text-color': c.textColor,
-      '--sidebar-icon-color': c.iconColor,
-      '--sidebar-selected-icon-color': c.accentColor,
-      '--sidebar-divider-color': c.dividerColor,
+      '--sidebar-background': cssColor(c.background),
+      '--sidebar-text-color': cssColor(c.textColor),
+      '--sidebar-icon-color': cssColor(c.iconColor),
+      '--sidebar-selected-icon-color': cssColor(c.accentColor),
+      '--sidebar-divider-color': cssColor(c.dividerColor),
+      '--sidebar-menu-gap': c.menuItemSpacing !== undefined && c.menuItemSpacing !== null && c.menuItemSpacing !== '' ? `${c.menuItemSpacing}px` : undefined,
+      '--sidebar-shadow': c.shadow ? shadowCss(c) : undefined,
       '--sidebar-blur': isGlass(c) ? `${c.blur || GLASS_BLUR}px` : undefined,
       '--sidebar-menu-font-size': c.menuFontSize ? `${c.menuFontSize}px` : undefined,
     };
@@ -1043,6 +1160,11 @@ class SidebarCard extends LitElement {
         -webkit-backdrop-filter: blur(var(--sidebar-blur, 12px));
         backdrop-filter: blur(var(--sidebar-blur, 12px));
       }
+      /* above the view, so the shadow falls onto it */
+      .sidebar-inner.shadow {
+        z-index: 1;
+        box-shadow: var(--sidebar-shadow);
+      }
       /* above the view, so the edit flag sticking out of the sidebar can be tapped */
       .sidebar-inner.editing {
         z-index: 3;
@@ -1061,7 +1183,7 @@ class SidebarCard extends LitElement {
         border-top: 1px solid var(--sb-divider);
       }
 
-      /* edit mode: a flag sticking out of the sidebar's outer edge */
+      /* edit mode: a flag sticking out of the sidebar's outer edge, colored like the flags of HA's sections */
       .edit-sidebar {
         position: absolute;
         top: 16px;
@@ -1069,26 +1191,23 @@ class SidebarCard extends LitElement {
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 40px;
-        height: 48px;
-        padding: 0 2px 0 0;
+        width: 36px;
+        height: 44px;
+        padding: 0;
         border: none;
-        border-radius: 0 12px 12px 0;
-        background: var(--primary-color, #03a9f4);
-        color: var(--text-primary-color, #fff);
-        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.25);
+        border-radius: 0 var(--ha-border-radius-xl, 16px) var(--ha-border-radius-xl, 16px) 0;
+        background: var(--secondary-background-color, #e5e5e5);
+        color: var(--primary-text-color, #212121);
         cursor: pointer;
-        --mdc-icon-size: 22px;
+        --mdc-icon-size: 20px;
       }
       .sidebar-inner.right .edit-sidebar {
         left: auto;
         right: 100%;
-        padding: 0 0 0 2px;
-        border-radius: 12px 0 0 12px;
-        box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.25);
+        border-radius: var(--ha-border-radius-xl, 16px) 0 0 var(--ha-border-radius-xl, 16px);
       }
       .edit-sidebar:hover {
-        filter: brightness(1.1);
+        filter: brightness(0.95);
       }
 
       /* clocks, dates, title */
@@ -1121,6 +1240,9 @@ class SidebarCard extends LitElement {
 
       /* menu */
       .sidebarMenu {
+        display: flex;
+        flex-direction: column;
+        gap: var(--sidebar-menu-gap, 4px);
         list-style: none;
         margin: 20px 0;
         padding: 16px 0;
@@ -1132,7 +1254,7 @@ class SidebarCard extends LitElement {
         display: flex;
         align-items: center;
         gap: 14px;
-        margin: 2px 0;
+        margin: 0;
         padding: 10px 16px;
         border-radius: var(--sidebar-item-radius, 12px);
         color: var(--sb-text);
@@ -1381,12 +1503,15 @@ const EDITOR_DEFAULTS: Record<string, any> = {
   bottomButtonsLayout: 'row',
   widthUnit: '%',
   menuFontSize: 18,
+  menuItemSpacing: MENU_ITEM_SPACING,
   blur: GLASS_BLUR,
+  shadowSize: SHADOW_SIZE,
 };
 const DEFAULT_BREAKPOINTS = { tablet: 1024, mobile: 768 };
 const DEFAULT_WIDTH_PERCENT = 25;
+const DEFAULT_WIDTH_PX = 300;
 // switches that are off by default and not stored when off
-const OFF_BY_DEFAULT = ['viewMenu', 'bottomButtonsShowName', 'showRight', 'hideTopMenu', 'showTopMenuOnMobile', 'hideHassSidebar', 'dockHassSidebar', 'debug'];
+const OFF_BY_DEFAULT = ['viewMenu', 'bottomButtonsShowName', 'showRight', 'shadow', 'hideTopMenu', 'showTopMenuOnMobile', 'hideHassSidebar', 'dockHassSidebar', 'debug'];
 const CUSTOM_DATE_FORMAT = 'custom';
 const WIDTH_KEYS = ['desktop', 'tablet', 'mobile'];
 // older keys the elements list replaces
@@ -1433,7 +1558,8 @@ function fromElementFormData(data: any, language: string) {
   Object.keys(element).forEach((key) => {
     if (key !== 'type' && (isEmpty(element[key]) || element[key] === defaults[key])) delete element[key];
   });
-  return element;
+  // type first, so the YAML reads well
+  return Object.assign({ type: element.type }, element);
 }
 
 // The form uses one width object plus a unit and shows every default; the stored config may be shorter
@@ -1463,7 +1589,7 @@ function toFormData(config: any, hassObj: any) {
   }
   unit = unit || '%';
   WIDTH_KEYS.forEach((key) => {
-    if (typeof width[key] !== 'number') width[key] = unit === 'px' ? 300 : DEFAULT_WIDTH_PERCENT;
+    if (typeof width[key] !== 'number') width[key] = unit === 'px' ? DEFAULT_WIDTH_PX : DEFAULT_WIDTH_PERCENT;
   });
   data.width = width;
   data.widthUnit = unit;
@@ -1489,6 +1615,7 @@ function fromFormData(formData: any, hassObj: any) {
     delete data.glass;
     delete data.blur;
   }
+  if (!data.shadow) delete data.shadowSize;
 
   const unit = data.widthUnit || '%';
   if (data.width && typeof data.width === 'object') {
@@ -1529,27 +1656,58 @@ function convertWidth(width: any, toUnit: string) {
   return result;
 }
 
-const slider = (min: number, max: number, step: number, unit: string) => ({ number: { min, max, step, mode: 'slider', unit_of_measurement: unit } });
-const dropdown = (options: any[]) => ({ select: { mode: 'dropdown', options } });
+// a slider with a button that puts the default back; rendered by ha-form as "ha-form-sidebar_slider"
+const slider = (name: string, min: number, max: number, step: number, unit: string, defaultValue: number, extra: any = {}) =>
+  Object.assign({ name, type: 'sidebar_slider', min, max, step, unit, default: defaultValue }, extra);
+// required: HA's dropdown then has no clear button, so it is never empty
+const dropdown = (name: string, options: any[], extra: any = {}) =>
+  Object.assign({ name, required: true, selector: { select: { mode: 'dropdown', options } } }, extra);
+
+let timeZoneList: any[] | null = null;
+
+function timeZoneSelectOptions(hassObj: any) {
+  const t = (key: string) => localize(key, hassObj);
+  if (!timeZoneList) timeZoneList = timeZoneOptions();
+  let device = '';
+  try {
+    device = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  } catch {
+    // unknown
+  }
+  const server = hassObj && hassObj.config ? hassObj.config.time_zone : '';
+  return [
+    { value: 'local', label: device ? `${t('opt_tz_local')} (${device.replace(/_/g, ' ')})` : t('opt_tz_local') },
+    { value: 'server', label: server ? `${t('opt_tz_server')} (${server.replace(/_/g, ' ')})` : t('opt_tz_server') },
+    ...timeZoneList,
+  ];
+}
+
+// the time zone list is searchable and also takes names it does not know
+function timeZoneField(hassObj: any) {
+  return { name: 'timeZone', required: true, selector: { select: { mode: 'dropdown', custom_value: true, options: timeZoneSelectOptions(hassObj) } } };
+}
 
 function elementSchema(element: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
   const language = languageOf(hassObj);
   const now = new Date();
+  const defaults = ELEMENT_TYPES[element.type].defaults;
   if (element.type === 'digitalClock') {
     return [
-      {
-        name: 'timeFormat',
-        selector: dropdown(['24', '12', '12ampm'].map((format) => ({ value: format, label: `${t('opt_time_' + format)} (${formatTime(now, format, false)})` }))),
-      },
+      dropdown(
+        'timeFormat',
+        ['24', '12', '12ampm'].map((format) => ({ value: format, label: `${t('opt_time_' + format)} (${formatTime(now, format, false)})` })),
+      ),
       { name: 'seconds', selector: { boolean: {} } },
-      { name: 'size', selector: slider(32, 120, 2, 'px'), __helper: t('helper_digitalSize') },
+      slider('size', 32, 120, 2, 'px', defaults.size, { __helper: t('helper_digitalSize') }),
+      timeZoneField(hassObj),
     ];
   }
   if (element.type === 'analogClock') {
     return [
       { name: 'seconds', selector: { boolean: {} }, __label: t('label_secondHand') },
-      { name: 'size', selector: slider(100, 400, 10, 'px') },
+      slider('size', 100, 400, 10, 'px', defaults.size),
+      timeZoneField(hassObj),
     ];
   }
   const options = [
@@ -1562,22 +1720,26 @@ function elementSchema(element: any, hassObj: any) {
     { value: CUSTOM_DATE_FORMAT, label: t('opt_date_custom') },
   ];
   return [
-    { name: 'formatPreset', selector: dropdown(options) },
+    dropdown('formatPreset', options),
     ...(element.formatPreset === CUSTOM_DATE_FORMAT ? [{ name: 'format', selector: { text: {} }, __helper: t('helper_dateFormat') }] : []),
-    { name: 'size', selector: slider(14, 40, 1, 'px') },
+    slider('size', 14, 40, 1, 'px', defaults.size),
+    timeZoneField(hassObj),
   ];
 }
 
 function elementSummary(element: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
   const language = languageOf(hassObj);
-  const now = new Date();
-  if (element.type === 'digitalClock') return `${formatTime(now, element.timeFormat, element.seconds)} · ${element.size} px`;
-  if (element.type === 'analogClock') return `${element.size} px · ${t(element.seconds ? 'with_second_hand' : 'without_second_hand')}`;
+  const timeZone = element.timeZone && element.timeZone !== 'local' ? element.timeZone : '';
+  const now = zonedDate(new Date(), resolveTimeZone(timeZone, hassObj));
+  const zoneName = timeZone === 'server' ? t('opt_tz_server') : timeZone.split('/').pop().replace(/_/g, ' ');
+  const zone = timeZone ? ` · ${zoneName}` : '';
+  if (element.type === 'digitalClock') return `${formatTime(now, element.timeFormat, element.seconds)} · ${element.size} px${zone}`;
+  if (element.type === 'analogClock') return `${element.size} px · ${t(element.seconds ? 'with_second_hand' : 'without_second_hand')}${zone}`;
   const format = element.formatPreset === CUSTOM_DATE_FORMAT ? element.format : element.formatPreset;
   return `${moment(now)
     .locale(language)
-    .format(format || datePresets(language)[0])} · ${element.size} px`;
+    .format(format || datePresets(language)[0])} · ${element.size} px${zone}`;
 }
 
 // ha-form is loaded on demand by Home Assistant; the tile card editor pulls it in
@@ -1603,8 +1765,11 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
     value: view.path !== undefined && view.path !== null && view.path !== '' ? String(view.path) : String(index),
     label: view.title || view.path || String(index + 1),
   }));
-  const color = (name: string) => ({ name, selector: { text: {} }, __helper: t('helper_color') });
-  const widthSelector = data.widthUnit === 'px' ? slider(0, 600, 10, 'px') : slider(0, 50, 1, '%');
+  // HA's own color picker: theme colors with a swatch, or any CSS color typed in
+  const color = (name: string) => ({ name, selector: { ui_color: {} } });
+  const px = data.widthUnit === 'px';
+  const width = (name: string, extra: any = {}) =>
+    px ? slider(name, 0, 600, 10, 'px', DEFAULT_WIDTH_PX, extra) : slider(name, 0, 50, 1, '%', DEFAULT_WIDTH_PERCENT, extra);
 
   return [
     {
@@ -1632,15 +1797,13 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             },
           },
         },
-        {
-          name: 'menuIcons',
-          selector: dropdown([
-            { value: 'left', label: t('opt_left') },
-            { value: 'right', label: t('opt_right') },
-            { value: 'none', label: t('opt_none') },
-          ]),
-        },
-        { name: 'menuFontSize', selector: slider(12, 28, 1, 'px') },
+        dropdown('menuIcons', [
+          { value: 'left', label: t('opt_left') },
+          { value: 'right', label: t('opt_right') },
+          { value: 'none', label: t('opt_none') },
+        ]),
+        slider('menuFontSize', 12, 28, 1, 'px', EDITOR_DEFAULTS.menuFontSize),
+        slider('menuItemSpacing', 0, 24, 1, 'px', EDITOR_DEFAULTS.menuItemSpacing),
         { name: 'template', selector: { template: {} }, __helper: t('helper_template') },
       ],
     },
@@ -1668,13 +1831,10 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             },
           },
         },
-        {
-          name: 'bottomButtonsLayout',
-          selector: dropdown([
-            { value: 'row', label: t('opt_row') },
-            { value: 'list', label: t('opt_list') },
-          ]),
-        },
+        dropdown('bottomButtonsLayout', [
+          { value: 'row', label: t('opt_row') },
+          { value: 'list', label: t('opt_list') },
+        ]),
         ...(data.bottomButtonsLayout !== 'list' ? [{ name: 'bottomButtonsShowName', selector: { boolean: {} } }] : []),
         { name: 'bottomCard', selector: { object: {} } },
       ],
@@ -1686,21 +1846,18 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
       title: t('section_layout'),
       icon: 'mdi:arrow-expand-horizontal',
       schema: [
-        {
-          name: 'widthUnit',
-          selector: dropdown([
-            { value: '%', label: t('opt_percent') },
-            { value: 'px', label: t('opt_pixel') },
-          ]),
-        },
+        dropdown('widthUnit', [
+          { value: '%', label: t('opt_percent') },
+          { value: 'px', label: t('opt_pixel') },
+        ]),
         {
           type: 'grid',
           name: 'width',
           column_min_width: '100%',
           schema: [
-            { name: 'desktop', selector: widthSelector, __label: t('label_width_desktop') },
-            { name: 'tablet', selector: widthSelector, __label: t('label_width_tablet') },
-            { name: 'mobile', selector: widthSelector, __label: t('label_width_mobile'), __helper: t('helper_width') },
+            width('desktop', { __label: t('label_width_desktop') }),
+            width('tablet', { __label: t('label_width_tablet') }),
+            width('mobile', { __label: t('label_width_mobile'), __helper: t('helper_width') }),
           ],
         },
         {
@@ -1708,8 +1865,8 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           name: 'breakpoints',
           column_min_width: '100%',
           schema: [
-            { name: 'tablet', selector: slider(600, 2000, 8, 'px'), __label: t('label_breakpoint_tablet') },
-            { name: 'mobile', selector: slider(320, 1200, 8, 'px'), __label: t('label_breakpoint_mobile') },
+            slider('tablet', 600, 2000, 8, 'px', DEFAULT_BREAKPOINTS.tablet, { __label: t('label_breakpoint_tablet') }),
+            slider('mobile', 320, 1200, 8, 'px', DEFAULT_BREAKPOINTS.mobile, { __label: t('label_breakpoint_mobile') }),
           ],
         },
         { name: 'showRight', selector: { boolean: {} } },
@@ -1729,7 +1886,9 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           schema: [color('background'), color('textColor'), color('iconColor'), color('accentColor'), color('dividerColor')],
         },
         { name: 'glass', selector: { boolean: {} }, __helper: t('helper_glass') },
-        ...(data.glass ? [{ name: 'blur', selector: slider(2, 30, 1, 'px') }] : []),
+        ...(data.glass ? [slider('blur', 2, 30, 1, 'px', GLASS_BLUR)] : []),
+        { name: 'shadow', selector: { boolean: {} }, __helper: t('helper_shadow') },
+        ...(data.shadow ? [slider('shadowSize', 2, 40, 1, 'px', SHADOW_SIZE)] : []),
         { name: 'style', selector: { text: { multiline: true } } },
       ],
     },
@@ -1749,6 +1908,131 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
     },
   ];
 }
+
+// A slider field for ha-form ("type: sidebar_slider") with a button on the right that puts the default back.
+// ha-form renders unknown field types as <ha-form-TYPE> and passes schema, data, label, helper and hass.
+class SidebarSliderField extends LitElement {
+  hass: any;
+  schema: any;
+  data: any;
+  label = '';
+  helper = '';
+  disabled = false;
+  _selectorFor: any = null;
+  _selector: any = null;
+
+  static get properties() {
+    return {
+      hass: { attribute: false },
+      schema: { attribute: false },
+      data: { attribute: false },
+      label: { attribute: false },
+      helper: { attribute: false },
+      disabled: { type: Boolean },
+    };
+  }
+
+  _getSelector() {
+    if (this._selectorFor !== this.schema) {
+      const s = this.schema || {};
+      this._selectorFor = this.schema;
+      this._selector = { number: { min: s.min, max: s.max, step: s.step, mode: 'slider', unit_of_measurement: s.unit } };
+    }
+    return this._selector;
+  }
+
+  render() {
+    const s = this.schema || {};
+    const value = typeof this.data === 'number' ? this.data : s.default;
+    return html`
+      ${this.label
+        ? html`
+            <div class="label">${this.label}</div>
+          `
+        : ''}
+      <div class="row">
+        <ha-selector
+          class="slider"
+          .hass=${this.hass}
+          .selector=${this._getSelector()}
+          .value=${value}
+          .disabled=${this.disabled}
+          .required=${false}
+          @value-changed=${(ev) => this._changed(ev)}
+        ></ha-selector>
+        <button class="reset" title="${localize('reset_default', this.hass)}" ?disabled=${this.disabled || value === s.default} @click=${() => this._fire(s.default)}>
+          <ha-icon icon="mdi:restore"></ha-icon>
+        </button>
+      </div>
+      ${this.helper
+        ? html`
+            <div class="helper">${this.helper}</div>
+          `
+        : ''}
+    `;
+  }
+
+  _changed(ev: any) {
+    ev.stopPropagation();
+    this._fire(ev.detail.value);
+  }
+
+  _fire(value: any) {
+    this.dispatchEvent(new CustomEvent('value-changed', { detail: { value }, bubbles: true }));
+  }
+
+  static get styles() {
+    return css`
+      :host {
+        display: block;
+      }
+      .label {
+        color: var(--primary-text-color, #212121);
+      }
+      .row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .slider {
+        display: block;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .reset {
+        display: flex;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        width: 36px;
+        height: 36px;
+        padding: 0;
+        border: none;
+        border-radius: 50%;
+        background: transparent;
+        color: var(--secondary-text-color, #727272);
+        cursor: pointer;
+        --mdc-icon-size: 20px;
+      }
+      .reset:hover:not([disabled]) {
+        background: rgba(127, 127, 127, 0.12);
+        color: var(--primary-text-color, #212121);
+      }
+      .reset[disabled] {
+        opacity: 0.35;
+        cursor: default;
+      }
+      .helper {
+        padding-left: 16px;
+        color: var(--secondary-text-color, #727272);
+        font-size: 12px;
+        line-height: 16px;
+      }
+    `;
+  }
+}
+
+if (!customElements.get('ha-form-sidebar_slider')) customElements.define('ha-form-sidebar_slider', SidebarSliderField);
 
 class SidebarCardEditor extends LitElement {
   hass: any;
@@ -1801,6 +2085,7 @@ class SidebarCardEditor extends LitElement {
       d.bottomButtonsLayout,
       d.widthUnit,
       d.glass,
+      d.shadow,
       d.hideTopMenu,
       (views || []).map((view) => [view.path, view.title]),
     ]);
@@ -1873,7 +2158,7 @@ class SidebarCardEditor extends LitElement {
                 <div class="element${this._expanded === index ? ' expanded' : ''}">
                   <div class="element-row">
                     <span class="handle" title="${t('move_element')}" @pointerdown=${(ev) => this._dragStart(ev, index)}>
-                      <ha-icon icon="mdi:drag"></ha-icon>
+                      <ha-icon icon="mdi:drag-horizontal-variant"></ha-icon>
                     </span>
                     <ha-icon class="element-icon" .icon=${ELEMENT_TYPES[element.type].icon}></ha-icon>
                     <div class="element-info" @click=${() => this._toggleElement(index)}>
@@ -1884,7 +2169,7 @@ class SidebarCardEditor extends LitElement {
                       <ha-icon .icon=${this._expanded === index ? 'mdi:chevron-up' : 'mdi:pencil'}></ha-icon>
                     </button>
                     <button class="icon" title="${t('remove_element')}" @click=${() => this._removeElement(index)}>
-                      <ha-icon icon="mdi:delete-outline"></ha-icon>
+                      <ha-icon icon="mdi:delete"></ha-icon>
                     </button>
                   </div>
                   ${this._expanded === index
@@ -1971,6 +2256,10 @@ class SidebarCardEditor extends LitElement {
     const elements = [...(this._data.elements || [])];
     const previous = elements[index];
     const element = Object.assign({}, ev.detail.value);
+    // dropdowns never end up empty
+    ['timeFormat', 'formatPreset', 'timeZone'].forEach((key) => {
+      if (key in previous && isEmpty(element[key])) element[key] = previous[key];
+    });
     // a chosen preset is copied into the custom field, so "custom" starts from it
     if (element.formatPreset !== previous.formatPreset && element.formatPreset !== CUSTOM_DATE_FORMAT) element.format = element.formatPreset;
     elements[index] = element;
@@ -2024,6 +2313,9 @@ class SidebarCardEditor extends LitElement {
     ev.stopPropagation();
     const previous = this._data;
     const data = Object.assign({}, ev.detail.value, { elements: previous.elements });
+    ['menuIcons', 'bottomButtonsLayout', 'widthUnit'].forEach((key) => {
+      if (isEmpty(data[key])) data[key] = previous[key] || EDITOR_DEFAULTS[key];
+    });
     if (data.widthUnit !== previous.widthUnit && data.width) {
       data.width = convertWidth(data.width, data.widthUnit);
     }
@@ -2227,11 +2519,8 @@ class SidebarCardEditor extends LitElement {
         align-self: stretch;
         width: 40px;
         color: var(--secondary-text-color, #727272);
-        cursor: grab;
+        cursor: move;
         touch-action: none;
-      }
-      .element.dragging .handle {
-        cursor: grabbing;
       }
       .element-icon {
         flex: none;
@@ -2515,13 +2804,11 @@ function applyHassSidebarHidden(hidden: boolean) {
   }
 }
 
-// ?sidebar=true shows the HA header and sidebar again until the page is reloaded, ?sidebar=false hides them again
-// (?sidebarOff is the older name)
+// ?haUi=true shows the HA header and sidebar again until the page is reloaded, ?haUi=false hides them again
 let hassUiForced = false;
 function isHassUiForced() {
-  const value = getParameterByName('sidebar');
+  const value = getParameterByName('haUi');
   if (value !== null) hassUiForced = value === '' || value === 'true' || value === '1';
-  if (getParameterByName('sidebarOff') !== null) hassUiForced = true;
   return hassUiForced;
 }
 

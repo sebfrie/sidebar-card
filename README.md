@@ -54,8 +54,8 @@ dates are a list there: add them with a button, drag them into order, open one t
 normal Home Assistant views with native cards that you edit as usual.
 
 In edit mode the Home Assistant header is always shown, even with `hideTopMenu`. To get into edit mode while the header
-is hidden, add `?edit=1` to the dashboard's address (e.g. `/dashboard-home/home?edit=1`); `?sidebar=true` shows the
-header and the Home Assistant sidebar again until the page is reloaded (`?sidebar=false` hides them again).
+is hidden, add `?edit=1` to the dashboard's address (e.g. `/dashboard-home/home?edit=1`); `?haUi=true` shows the
+header and the Home Assistant sidebar again until the page is reloaded (`?haUi=false` hides them again).
 
 ### Main Options
 
@@ -76,16 +76,19 @@ Under `sidebar:` you can configure the following options:
 | `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want. Shown below the views of `viewMenu` |
 | `menuIcons` | string | optional | `left` | `left`, `right` or `none`: where menu icons are shown |
 | `menuFontSize` | number | optional | `18` | Font size of the menu in px |
+| `menuItemSpacing` | number | optional | `4` | Space between menu items in px |
 | `bottomButtons` | list | optional | *see info below* | Entities and buttons pinned to the bottom of the sidebar |
 | `bottomButtonsLayout` | string | optional | `row` | `row` (icon bar) or `list` (icon, name and state) |
 | `bottomButtonsShowName` | boolean | optional | `false` | Show names below the icons in the `row` layout |
-| `background` | string | optional | card background | Any CSS color of the sidebar, e.g. `rgba(0, 0, 0, 0.4)` |
+| `background` | string | optional | card background | Color of the sidebar: a theme color name as Home Assistant's color picker stores it (`primary`, `red`, `blue-grey`, ...) or any CSS color, e.g. `rgba(0, 0, 0, 0.4)`. The same goes for the other colors |
 | `textColor` | string | optional | primary text color | Text color |
 | `iconColor` | string | optional | secondary text color | Color of the menu and button icons |
 | `accentColor` | string | optional | primary color | Color of the active menu item and of active buttons |
 | `dividerColor` | string | optional | divider color | Color of the divider lines |
 | `glass` | boolean | optional | `false` | Glass effect: the sidebar becomes semi-transparent and blurs the dashboard background behind it. With your own `background`, its transparency is used |
 | `blur` | number | optional | `12` | Strength of the glass effect's blur in px |
+| `shadow` | boolean | optional | `false` | Casts a shadow onto the dashboard next to the sidebar |
+| `shadowSize` | number | optional | `12` | Size of the shadow in px |
 | `widthUnit` | string | optional | `%` | `%` or `px`, the unit of the numbers in `width` |
 | `updateMenu` | boolean | optional | `true` | When false the active state of the sidebar will not change by navigating to a different view |
 | `template` | template | optional | *see info below* | Template rules that will show messages to inform you for example with how many lights are on |
@@ -100,8 +103,8 @@ Under `sidebar:` you can configure the following options:
 | `hideTopMenu` | boolean | optional | `true` | Hide the top home assistant menu |
 | `debug` | boolean | optional | `false` | Show debugging messages in the browser's developer console |
 
-When using **hideTopMenu**, **hideHassSidebar** and/or **dockHassSidebar** you can disable this by adding `?sidebar=true` to the url
-until the page is reloaded (`?sidebarOff` still works). For example: `https://myhomeassistant.duckdns.org/lovelace/home?sidebar=true`
+When using **hideTopMenu**, **hideHassSidebar** and/or **dockHassSidebar** you can disable this by adding `?haUi=true` to the url
+until the page is reloaded. For example: `https://myhomeassistant.duckdns.org/lovelace/home?haUi=true`
 
 #### Elements
 
@@ -109,9 +112,11 @@ until the page is reloaded (`?sidebarOff` still works). For example: `https://my
 
 | Type | Options |
 | --- | --- |
-| `digitalClock` | `timeFormat` (`24`, `12`, `12ampm`; default `24`), `seconds` (default `false`), `size` (largest font size in px, default `60`; the time always fits the sidebar) |
-| `analogClock` | `seconds` (second hand, default `true`), `size` (px, default `220`, never wider than the sidebar) |
-| `date` | `format` (moment.js, default `dddd, D. MMMM` in German, `dddd, MMMM D` otherwise), `size` (px, default `22`) |
+| `digitalClock` | `timeFormat` (`24`, `12`, `12ampm`; default `24`), `seconds` (default `false`), `size` (largest font size in px, default `60`; the time always fits the sidebar), `timeZone` |
+| `analogClock` | `seconds` (second hand, default `true`), `size` (px, default `220`, never wider than the sidebar), `timeZone` |
+| `date` | `format` (moment.js, default `dddd, D. MMMM` in German, `dddd, MMMM D` otherwise), `size` (px, default `22`), `timeZone` |
+
+`timeZone` is `local` (this device, default), `server` (the time zone of Home Assistant) or any IANA name such as `America/New_York`.
 
 ```yaml
 sidebar:
