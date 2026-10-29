@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.10.0';
+const SIDEBAR_CARD_VERSION = '0.10.1';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -452,6 +452,11 @@ function elementsOf(config: any): any[] {
   });
 }
 
+// the icons of Home Assistant's card menu (@mdi/js), drawn by ha-svg-icon like there
+const MDI_PENCIL =
+  'M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z';
+const MDI_DELETE = 'M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z';
+
 const GLASS_BLUR = 12;
 const SHADOW_SIZE = 12;
 const MENU_ITEM_SPACING = 4;
@@ -726,13 +731,13 @@ class SidebarCard extends LitElement {
           <ha-icon icon="mdi:dots-vertical"></ha-icon>
         </button>
         <ha-dropdown-item value="edit">
-          <ha-icon slot="icon" icon="mdi:pencil"></ha-icon>
+          <ha-svg-icon slot="icon" .path=${MDI_PENCIL}></ha-svg-icon>
           ${editText}
         </ha-dropdown-item>
         <wa-divider></wa-divider>
         <ha-dropdown-item value="delete" variant="danger">
           ${deleteText}
-          <ha-icon slot="icon" class="warning" icon="mdi:delete"></ha-icon>
+          <ha-svg-icon slot="icon" .path=${MDI_DELETE}></ha-svg-icon>
         </ha-dropdown-item>
       </ha-dropdown>
     `;
@@ -1385,8 +1390,9 @@ class SidebarCard extends LitElement {
       .edit-sidebar:hover {
         filter: brightness(0.95);
       }
-      .warning {
-        color: var(--error-color, #db4437);
+      /* the size of the icons in Home Assistant's own menus; the item colors them (red for delete) */
+      ha-dropdown-item {
+        --mdc-icon-size: 24px;
       }
       /* as hui-card-edit-mode draws it over cards */
       .edit-overlay {
