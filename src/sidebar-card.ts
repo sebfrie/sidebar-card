@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.3.1';
+const SIDEBAR_CARD_VERSION = '0.4.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -29,7 +29,17 @@ import { forwardHaptic, navigate, toggleEntity } from 'custom-card-helpers';
 const STRINGS: Record<string, Record<string, string>> = {
   en: {
     edit_sidebar: 'Edit sidebar',
-    editor_title: 'Sidebar',
+    editor_title: 'Sidebar configuration',
+    element_digitalClock: 'Digital clock',
+    element_analogClock: 'Analog clock',
+    element_date: 'Date',
+    add_element: 'Add',
+    edit_element: 'Edit',
+    remove_element: 'Remove',
+    move_element: 'Drag to move',
+    no_elements: 'No clock and no date yet.',
+    with_second_hand: 'with second hand',
+    without_second_hand: 'without second hand',
     cancel: 'Cancel',
     save: 'Save',
     saving: 'Saving…',
@@ -41,15 +51,14 @@ const STRINGS: Record<string, Record<string, string>> = {
     section_layout: 'Width & position',
     section_design: 'Design',
     section_advanced: 'Advanced',
-    label_digitalClock: 'Digital clock',
-    label_clock: 'Analog clock',
-    label_date: 'Date',
     label_seconds: 'Show seconds',
+    label_secondHand: 'Second hand',
+    label_size: 'Size',
+    label_formatPreset: 'Date format',
+    label_format: 'Custom date format',
+    label_glass: 'Glass effect',
+    label_blur: 'Blur',
     label_timeFormat: 'Time format',
-    label_clockSize: 'Digital clock size',
-    label_analogClockSize: 'Analog clock size',
-    label_dateFormatPreset: 'Date format',
-    label_dateFormat: 'Custom date format',
     label_viewMenu: 'Show the views of this dashboard',
     label_viewMenuExclude: 'Hide these views',
     label_sidebarMenu: 'Additional menu items',
@@ -73,7 +82,6 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_iconColor: 'Icon color',
     label_accentColor: 'Accent color (active)',
     label_dividerColor: 'Divider color',
-    label_blur: 'Glass effect (blur)',
     label_style: 'Custom CSS',
     label_hideTopMenu: 'Hide the Home Assistant header',
     label_showTopMenuOnMobile: 'Keep the header on mobile',
@@ -103,16 +111,27 @@ const STRINGS: Record<string, Record<string, string>> = {
     helper_hideOnPath: 'Path from the address bar, e.g. /dashboard-home/cameras',
     helper_template: 'Every line as <li>…</li>',
     helper_color: 'CSS color, e.g. #ffffff, rgba(0, 0, 0, 0.4) or var(--primary-color)',
-    helper_blur:
-      'Blurs the dashboard background (image or color) that shows through the sidebar. Only visible with a semi-transparent background, e.g. rgba(0, 0, 0, 0.4).',
+    helper_glass:
+      'Makes the sidebar semi-transparent and blurs the dashboard background behind it. With your own background color, its transparency is used, e.g. rgba(0, 0, 0, 0.4).',
+    helper_digitalSize: 'Largest size; the time always fits the sidebar.',
     helper_hideTopMenu:
-      'It stays visible in edit mode. To edit the dashboard, add ?edit=1 to its address; ?sidebarOff shows header and sidebar again until you switch views.',
-    helper_hideHassSidebar: 'Removes it completely, including the menu button. ?sidebarOff in the address shows it again.',
-    helper_dockHassSidebar: 'While this dashboard is open, the sidebar is folded away and opens with the menu button in the header.',
+      'It stays visible in edit mode. To edit the dashboard, add ?edit=1 to its address; ?sidebar=true shows the header and sidebar of Home Assistant again until the page is reloaded.',
+    helper_hideHassSidebar: 'Removes it completely, including the menu button. ?sidebar=true in the address shows it again.',
+    helper_dockHassSidebar: 'While this dashboard is open, only the narrow icon bar is shown; the menu button expands it.',
   },
   de: {
     edit_sidebar: 'Seitenleiste bearbeiten',
-    editor_title: 'Seitenleiste',
+    editor_title: 'Seitenleiste anpassen',
+    element_digitalClock: 'Digitaluhr',
+    element_analogClock: 'Analoge Uhr',
+    element_date: 'Datum',
+    add_element: 'Hinzufügen',
+    edit_element: 'Bearbeiten',
+    remove_element: 'Entfernen',
+    move_element: 'Zum Verschieben ziehen',
+    no_elements: 'Noch keine Uhr und kein Datum.',
+    with_second_hand: 'mit Sekundenzeiger',
+    without_second_hand: 'ohne Sekundenzeiger',
     cancel: 'Abbrechen',
     save: 'Speichern',
     saving: 'Speichert…',
@@ -124,15 +143,14 @@ const STRINGS: Record<string, Record<string, string>> = {
     section_layout: 'Breite & Position',
     section_design: 'Design',
     section_advanced: 'Erweitert',
-    label_digitalClock: 'Digitaluhr',
-    label_clock: 'Analoge Uhr',
-    label_date: 'Datum',
     label_seconds: 'Sekunden anzeigen',
+    label_secondHand: 'Sekundenzeiger',
+    label_size: 'Größe',
+    label_formatPreset: 'Datumsformat',
+    label_format: 'Eigenes Datumsformat',
+    label_glass: 'Glas-Effekt',
+    label_blur: 'Unschärfe',
     label_timeFormat: 'Zeitformat',
-    label_clockSize: 'Größe der Digitaluhr',
-    label_analogClockSize: 'Größe der Analoguhr',
-    label_dateFormatPreset: 'Datumsformat',
-    label_dateFormat: 'Eigenes Datumsformat',
     label_viewMenu: 'Views dieses Dashboards anzeigen',
     label_viewMenuExclude: 'Diese Views ausblenden',
     label_sidebarMenu: 'Zusätzliche Menüeinträge',
@@ -156,7 +174,6 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_iconColor: 'Icon-Farbe',
     label_accentColor: 'Akzentfarbe (aktiv)',
     label_dividerColor: 'Trennlinien',
-    label_blur: 'Glas-Effekt (Unschärfe)',
     label_style: 'Eigenes CSS',
     label_hideTopMenu: 'Kopfleiste von Home Assistant ausblenden',
     label_showTopMenuOnMobile: 'Kopfleiste auf Mobilgeräten behalten',
@@ -186,12 +203,13 @@ const STRINGS: Record<string, Record<string, string>> = {
     helper_hideOnPath: 'Pfad aus der Adresszeile, z. B. /dashboard-home/kameras',
     helper_template: 'Jede Zeile als <li>…</li>',
     helper_color: 'CSS-Farbe, z. B. #ffffff, rgba(0, 0, 0, 0.4) oder var(--primary-color)',
-    helper_blur:
-      'Zeichnet den Hintergrund des Dashboards (Bild oder Farbe), der durch die Seitenleiste durchscheint, unscharf. Nur sichtbar mit halbtransparentem Hintergrund, z. B. rgba(0, 0, 0, 0.4).',
+    helper_glass:
+      'Macht die Seitenleiste halbtransparent und den Dashboard-Hintergrund dahinter unscharf. Bei eigener Hintergrundfarbe zählt deren Transparenz, z. B. rgba(0, 0, 0, 0.4).',
+    helper_digitalSize: 'Höchstgröße; die Uhrzeit passt immer in die Seitenleiste.',
     helper_hideTopMenu:
-      'Im Bearbeitungsmodus bleibt sie sichtbar. Zum Bearbeiten ?edit=1 an die Adresse des Dashboards anhängen; ?sidebarOff zeigt Kopf- und Seitenleiste bis zum nächsten View-Wechsel wieder.',
-    helper_hideHassSidebar: 'Blendet sie komplett aus, auch den Menü-Button. ?sidebarOff an der Adresse zeigt sie wieder.',
-    helper_dockHassSidebar: 'Solange dieses Dashboard offen ist, ist sie eingeklappt und öffnet sich über den Menü-Button in der Kopfleiste.',
+      'Im Bearbeitungsmodus bleibt sie sichtbar. Zum Bearbeiten ?edit=1 an die Adresse des Dashboards anhängen; ?sidebar=true zeigt Kopf- und Seitenleiste von Home Assistant bis zum Neuladen wieder.',
+    helper_hideHassSidebar: 'Blendet sie komplett aus, auch den Menü-Button. ?sidebar=true an der Adresse zeigt sie wieder.',
+    helper_dockHassSidebar: 'Solange dieses Dashboard offen ist, zeigt Home Assistant nur die schmale Icon-Leiste; der Menü-Button klappt sie auf.',
   },
 };
 
@@ -286,6 +304,38 @@ function formatTime(date: Date, format: string, seconds: boolean) {
   let time = (format === '24' ? pad(hours) : String(hours)) + ':' + pad(date.getMinutes());
   if (seconds) time += ':' + pad(date.getSeconds());
   return time + suffix;
+}
+
+// Clocks and dates at the top of the sidebar, in the order of the list; each type has its own options
+const ELEMENT_TYPES: Record<string, { icon: string; defaults: Record<string, any> }> = {
+  digitalClock: { icon: 'mdi:clock-digital', defaults: { timeFormat: '24', seconds: false, size: 60 } },
+  analogClock: { icon: 'mdi:clock-outline', defaults: { seconds: true, size: 220 } },
+  date: { icon: 'mdi:calendar-today', defaults: { size: 22 } },
+};
+
+// the elements list, or the one older configs describe with digitalClock, clock and date
+function elementsOf(config: any): any[] {
+  if (Array.isArray(config.elements)) return config.elements.filter((element) => element && ELEMENT_TYPES[element.type]);
+  const seconds = showSeconds(config);
+  const elements: any[] = [];
+  if (config.digitalClock) elements.push({ type: 'digitalClock', timeFormat: timeFormatOf(config), seconds, size: config.clockSize });
+  if (config.clock) elements.push({ type: 'analogClock', seconds, size: config.analogClockSize });
+  if (config.date) elements.push({ type: 'date', format: config.dateFormat });
+  return elements.map((element) => {
+    Object.keys(element).forEach((key) => element[key] === undefined && delete element[key]);
+    return element;
+  });
+}
+
+const GLASS_BLUR = 12;
+
+// glass: semi-transparent and blurring; older configs only had blur
+function isGlass(config: any) {
+  return config.glass !== undefined ? !!config.glass : Number(config.blur) > 0;
+}
+
+function elementOption(element: any, key: string) {
+  return element[key] !== undefined && element[key] !== null && element[key] !== '' ? element[key] : ELEMENT_TYPES[element.type].defaults[key];
 }
 
 // the five date formats offered in the editor; the first one is the default
@@ -409,6 +459,7 @@ class SidebarCard extends LitElement {
     const layout = c.bottomButtonsLayout === 'list' ? 'list' : 'row';
     const iconPosition = ['left', 'right', 'none'].includes(c.menuIcons) ? c.menuIcons : 'left';
     const showFooter = buttons.length > 0 || !!c.bottomCard;
+    const editMode = this._isEditMode();
 
     return html`
       ${c.style
@@ -418,8 +469,8 @@ class SidebarCard extends LitElement {
             </style>
           `
         : ''}
-      <div class="sidebar-inner${c.blur ? ' blur' : ''}">
-        ${this._isEditMode()
+      <div class="sidebar-inner${isGlass(c) ? ' glass' : ''}${editMode ? ' editing' : ''}${c.showRight ? ' right' : ''}">
+        ${editMode
           ? html`
               <button class="edit-sidebar" title="${localize('edit_sidebar', this.hass)}" @click=${() => this._openEditor()}>
                 <ha-icon icon="mdi:pencil"></ha-icon>
@@ -427,20 +478,10 @@ class SidebarCard extends LitElement {
             `
           : ''}
         <div class="sidebar-main">
-          ${c.digitalClock
-            ? html`
-                <h1 class="digitalClock${c.title ? ' with-title' : ''}${showSeconds(c) ? ' with-seconds' : ''}">${this._timeString()}</h1>
-              `
-            : ''}
-          ${c.clock ? this._renderAnalogClock() : ''}
+          ${elementsOf(c).map((element) => this._renderElement(element))}
           ${c.title
             ? html`
                 <h1 class="title">${c.title}</h1>
-              `
-            : ''}
-          ${c.date
-            ? html`
-                <h2 class="date">${this._dateString()}</h2>
               `
             : ''}
           ${items.length > 0
@@ -493,24 +534,41 @@ class SidebarCard extends LitElement {
     `;
   }
 
-  _renderAnalogClock() {
-    const now = this._now;
-    const hours = now.getHours() % 12;
-    const minutes = now.getMinutes();
-    const seconds = now.getSeconds();
-    return html`
-      <div class="clock">
-        <div class="wrap">
-          <span class="hour" style="transform: rotate(${hours * 30 + minutes * 0.5}deg)"></span>
-          <span class="minute" style="transform: rotate(${minutes * 6 + seconds * 0.1}deg)"></span>
-          ${showSeconds(this.config)
-            ? html`
-                <span class="second" style="transform: rotate(${seconds * 6}deg)"></span>
-              `
-            : ''}
-          <span class="dot"></span>
+  _renderElement(element: any) {
+    const size = elementOption(element, 'size');
+    const seconds = !!elementOption(element, 'seconds');
+    if (element.type === 'digitalClock') {
+      const time = formatTime(this._now, elementOption(element, 'timeFormat'), seconds);
+      return html`
+        <h1 class="digitalClock${seconds ? ' with-seconds' : ''}" style="--sb-size: ${size}px">${time}</h1>
+      `;
+    }
+    if (element.type === 'analogClock') {
+      const now = this._now;
+      const hours = now.getHours() % 12;
+      const minutes = now.getMinutes();
+      const secs = now.getSeconds();
+      return html`
+        <div class="clock" style="--sb-size: ${size}px">
+          <div class="wrap">
+            <span class="hour" style="transform: rotate(${hours * 30 + minutes * 0.5}deg)"></span>
+            <span class="minute" style="transform: rotate(${minutes * 6 + secs * 0.1}deg)"></span>
+            ${seconds
+              ? html`
+                  <span class="second" style="transform: rotate(${secs * 6}deg)"></span>
+                `
+              : ''}
+            <span class="dot"></span>
+          </div>
         </div>
-      </div>
+      `;
+    }
+    const language = languageOf(this.hass);
+    const date = moment(this._now)
+      .locale(language)
+      .format(element.format || datePresets(language)[0]);
+    return html`
+      <h2 class="date" style="--sb-size: ${size}px">${date}</h2>
     `;
   }
 
@@ -558,21 +616,9 @@ class SidebarCard extends LitElement {
    * **************************************** */
 
   _tick() {
-    const c = this.config || {};
-    if (c.clock || c.digitalClock || c.date) {
+    if (elementsOf(this.config || {}).length > 0) {
       this._now = new Date();
     }
-  }
-
-  _timeString() {
-    return formatTime(this._now, timeFormatOf(this.config), showSeconds(this.config));
-  }
-
-  _dateString() {
-    const language = languageOf(this.hass);
-    return moment(this._now)
-      .locale(language)
-      .format(this.config.dateFormat || datePresets(language)[0]);
   }
 
   /* **************************************** *
@@ -912,9 +958,7 @@ class SidebarCard extends LitElement {
       '--sidebar-icon-color': c.iconColor,
       '--sidebar-selected-icon-color': c.accentColor,
       '--sidebar-divider-color': c.dividerColor,
-      '--sidebar-blur': c.blur ? `${c.blur}px` : undefined,
-      '--sidebar-clock-size': c.clockSize ? `${c.clockSize}px` : undefined,
-      '--sidebar-analog-clock-size': c.analogClockSize ? `${c.analogClockSize}px` : undefined,
+      '--sidebar-blur': isGlass(c) ? `${c.blur || GLASS_BLUR}px` : undefined,
       '--sidebar-menu-font-size': c.menuFontSize ? `${c.menuFontSize}px` : undefined,
     };
     Object.keys(properties).forEach((name) => {
@@ -987,13 +1031,21 @@ class SidebarCard extends LitElement {
         box-sizing: border-box;
         position: fixed;
         width: 0;
-        overflow: hidden;
         color: var(--sb-text);
         background: var(--sidebar-background, var(--ha-card-background, var(--card-background-color, #fff)));
       }
-      .sidebar-inner.blur {
-        -webkit-backdrop-filter: blur(var(--sidebar-blur, 0px));
-        backdrop-filter: blur(var(--sidebar-blur, 0px));
+      /* semi-transparent, blurring the dashboard background that shows through */
+      .sidebar-inner.glass {
+        background: var(
+          --sidebar-background,
+          color-mix(in srgb, var(--ha-card-background, var(--card-background-color, #fff)) 55%, transparent)
+        );
+        -webkit-backdrop-filter: blur(var(--sidebar-blur, 12px));
+        backdrop-filter: blur(var(--sidebar-blur, 12px));
+      }
+      /* above the view, so the edit flag sticking out of the sidebar can be tapped */
+      .sidebar-inner.editing {
+        z-index: 3;
       }
       .sidebar-main {
         flex: 1 1 auto;
@@ -1001,6 +1053,7 @@ class SidebarCard extends LitElement {
         overflow: hidden auto;
         padding: var(--sb-padding);
         scrollbar-width: thin;
+        container-type: inline-size;
       }
       .sidebar-footer {
         flex: 0 0 auto;
@@ -1008,58 +1061,62 @@ class SidebarCard extends LitElement {
         border-top: 1px solid var(--sb-divider);
       }
 
-      /* edit mode */
+      /* edit mode: a flag sticking out of the sidebar's outer edge */
       .edit-sidebar {
         position: absolute;
-        top: 12px;
-        right: 12px;
-        z-index: 2;
+        top: 16px;
+        left: 100%;
         display: flex;
         align-items: center;
         justify-content: center;
-        width: 44px;
-        height: 44px;
-        padding: 0;
+        width: 40px;
+        height: 48px;
+        padding: 0 2px 0 0;
         border: none;
-        border-radius: 50%;
+        border-radius: 0 12px 12px 0;
         background: var(--primary-color, #03a9f4);
         color: var(--text-primary-color, #fff);
-        box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+        box-shadow: 2px 2px 6px rgba(0, 0, 0, 0.25);
         cursor: pointer;
+        --mdc-icon-size: 22px;
+      }
+      .sidebar-inner.right .edit-sidebar {
+        left: auto;
+        right: 100%;
+        padding: 0 0 0 2px;
+        border-radius: 12px 0 0 12px;
+        box-shadow: -2px 2px 6px rgba(0, 0, 0, 0.25);
       }
       .edit-sidebar:hover {
         filter: brightness(1.1);
       }
 
-      /* clock, title, date */
-      h1 {
-        margin-top: 0;
-        margin-bottom: 20px;
-        font-size: 32px;
-        line-height: 1.1;
-        font-weight: 200;
+      /* clocks, dates, title */
+      h1,
+      h2 {
+        margin: 0 0 16px;
         color: var(--sb-text);
         cursor: default;
       }
+      h1 {
+        font-size: 32px;
+        line-height: 1.1;
+        font-weight: 200;
+      }
+      /* the size is a maximum: the time always fits the sidebar's width */
       h1.digitalClock {
-        font-size: var(--sidebar-clock-size, 60px);
+        font-size: min(var(--sb-size, 60px), 36cqw);
         line-height: 1;
         font-variant-numeric: tabular-nums;
         white-space: nowrap;
       }
       h1.digitalClock.with-seconds {
-        font-size: calc(var(--sidebar-clock-size, 60px) * 0.8);
+        font-size: min(var(--sb-size, 60px), 22cqw);
       }
-      h1.digitalClock.with-title {
-        margin-bottom: 0;
-      }
-      h2 {
-        margin: 0;
-        font-size: 22px;
+      h2.date {
+        font-size: var(--sb-size, 22px);
         line-height: 1.2;
         font-weight: 300;
-        color: var(--sb-text);
-        cursor: default;
       }
 
       /* menu */
@@ -1243,9 +1300,9 @@ class SidebarCard extends LitElement {
       .clock {
         position: relative;
         box-sizing: border-box;
-        width: min(100%, var(--sidebar-analog-clock-size, 220px));
+        width: min(100%, var(--sb-size, 220px));
         aspect-ratio: 1;
-        margin: 20px auto;
+        margin: 4px auto 20px;
         border-radius: 100%;
         background: var(--face-color, var(--sidebar-background, var(--card-background-color, #fff)));
         border: 5px solid var(--face-border-color, transparent);
@@ -1322,19 +1379,30 @@ customElements.define('sidebar-card', SidebarCard);
 const EDITOR_DEFAULTS: Record<string, any> = {
   menuIcons: 'left',
   bottomButtonsLayout: 'row',
-  timeFormat: '24',
   widthUnit: '%',
-  clockSize: 60,
-  analogClockSize: 220,
   menuFontSize: 18,
-  blur: 0,
+  blur: GLASS_BLUR,
 };
 const DEFAULT_BREAKPOINTS = { tablet: 1024, mobile: 768 };
 const DEFAULT_WIDTH_PERCENT = 25;
+// switches that are off by default and not stored when off
+const OFF_BY_DEFAULT = ['viewMenu', 'bottomButtonsShowName', 'showRight', 'hideTopMenu', 'showTopMenuOnMobile', 'hideHassSidebar', 'dockHassSidebar', 'debug'];
 const CUSTOM_DATE_FORMAT = 'custom';
 const WIDTH_KEYS = ['desktop', 'tablet', 'mobile'];
-// keys the editor replaces by seconds, timeFormat and dateFormat
-const LEGACY_KEYS = ['digitalClockWithSeconds', 'twelveHourVersion', 'period'];
+// older keys the elements list replaces
+const LEGACY_KEYS = [
+  'digitalClock',
+  'clock',
+  'date',
+  'seconds',
+  'timeFormat',
+  'clockSize',
+  'analogClockSize',
+  'dateFormat',
+  'digitalClockWithSeconds',
+  'twelveHourVersion',
+  'period',
+];
 
 function isEmpty(value: any) {
   if (value === undefined || value === null || value === '') return true;
@@ -1343,9 +1411,35 @@ function isEmpty(value: any) {
   return false;
 }
 
+// one element as the form shows it: every default filled in, the date format split into preset and custom text
+function toElementFormData(element: any, language: string) {
+  const data = Object.assign({}, ELEMENT_TYPES[element.type].defaults, element);
+  if (element.type === 'date') {
+    const presets = datePresets(language);
+    if (!data.format) data.format = presets[0];
+    data.formatPreset = presets.includes(data.format) ? data.format : CUSTOM_DATE_FORMAT;
+  }
+  return data;
+}
+
+function fromElementFormData(data: any, language: string) {
+  const element = Object.assign({}, data);
+  const defaults = ELEMENT_TYPES[element.type].defaults;
+  if (element.type === 'date') {
+    if (element.formatPreset && element.formatPreset !== CUSTOM_DATE_FORMAT) element.format = element.formatPreset;
+    delete element.formatPreset;
+    if (element.format === datePresets(language)[0]) delete element.format;
+  }
+  Object.keys(element).forEach((key) => {
+    if (key !== 'type' && (isEmpty(element[key]) || element[key] === defaults[key])) delete element[key];
+  });
+  return element;
+}
+
 // The form uses one width object plus a unit and shows every default; the stored config may be shorter
 function toFormData(config: any, hassObj: any) {
   const source = config || {};
+  const language = languageOf(hassObj);
   const data = clone(source) || {};
   let unit = data.widthUnit;
   const parse = (value: any) => {
@@ -1375,13 +1469,9 @@ function toFormData(config: any, hassObj: any) {
   data.widthUnit = unit;
   data.breakpoints = Object.assign({}, DEFAULT_BREAKPOINTS, data.breakpoints || {});
 
-  data.seconds = showSeconds(source);
-  data.timeFormat = timeFormatOf(source);
+  data.elements = elementsOf(source).map((element) => toElementFormData(element, language));
   LEGACY_KEYS.forEach((key) => delete data[key]);
-
-  const presets = datePresets(languageOf(hassObj));
-  if (!data.dateFormat) data.dateFormat = presets[0];
-  data.dateFormatPreset = presets.includes(data.dateFormat) ? data.dateFormat : CUSTOM_DATE_FORMAT;
+  data.glass = isGlass(source);
 
   Object.keys(EDITOR_DEFAULTS).forEach((key) => {
     if (isEmpty(data[key])) data[key] = EDITOR_DEFAULTS[key];
@@ -1393,10 +1483,12 @@ function toFormData(config: any, hassObj: any) {
 
 function fromFormData(formData: any, hassObj: any) {
   const data = Object.assign({}, formData);
-  const presets = datePresets(languageOf(hassObj));
-  if (data.dateFormatPreset && data.dateFormatPreset !== CUSTOM_DATE_FORMAT) data.dateFormat = data.dateFormatPreset;
-  delete data.dateFormatPreset;
-  if (data.dateFormat === presets[0]) delete data.dateFormat;
+  const language = languageOf(hassObj);
+  data.elements = (data.elements || []).map((element) => fromElementFormData(element, language));
+  if (!data.glass) {
+    delete data.glass;
+    delete data.blur;
+  }
 
   const unit = data.widthUnit || '%';
   if (data.width && typeof data.width === 'object') {
@@ -1415,6 +1507,7 @@ function fromFormData(formData: any, hassObj: any) {
   Object.keys(EDITOR_DEFAULTS).forEach((key) => {
     if (data[key] === EDITOR_DEFAULTS[key]) delete data[key];
   });
+  OFF_BY_DEFAULT.forEach((key) => data[key] === false && delete data[key]);
   LEGACY_KEYS.forEach((key) => delete data[key]);
 
   const config: any = {};
@@ -1431,9 +1524,60 @@ function convertWidth(width: any, toUnit: string) {
   WIDTH_KEYS.forEach((key) => {
     const value = Number(width[key]);
     if (isNaN(value)) return;
-    result[key] = toUnit === 'px' ? Math.min(600, Math.round((value / 100) * screen / 10) * 10) : Math.min(50, Math.round((value / screen) * 100));
+    result[key] = toUnit === 'px' ? Math.min(600, Math.round(((value / 100) * screen) / 10) * 10) : Math.min(50, Math.round((value / screen) * 100));
   });
   return result;
+}
+
+const slider = (min: number, max: number, step: number, unit: string) => ({ number: { min, max, step, mode: 'slider', unit_of_measurement: unit } });
+const dropdown = (options: any[]) => ({ select: { mode: 'dropdown', options } });
+
+function elementSchema(element: any, hassObj: any) {
+  const t = (key: string) => localize(key, hassObj);
+  const language = languageOf(hassObj);
+  const now = new Date();
+  if (element.type === 'digitalClock') {
+    return [
+      {
+        name: 'timeFormat',
+        selector: dropdown(['24', '12', '12ampm'].map((format) => ({ value: format, label: `${t('opt_time_' + format)} (${formatTime(now, format, false)})` }))),
+      },
+      { name: 'seconds', selector: { boolean: {} } },
+      { name: 'size', selector: slider(32, 120, 2, 'px'), __helper: t('helper_digitalSize') },
+    ];
+  }
+  if (element.type === 'analogClock') {
+    return [
+      { name: 'seconds', selector: { boolean: {} }, __label: t('label_secondHand') },
+      { name: 'size', selector: slider(100, 400, 10, 'px') },
+    ];
+  }
+  const options = [
+    ...datePresets(language).map((format) => ({
+      value: format,
+      label: moment(now)
+        .locale(language)
+        .format(format),
+    })),
+    { value: CUSTOM_DATE_FORMAT, label: t('opt_date_custom') },
+  ];
+  return [
+    { name: 'formatPreset', selector: dropdown(options) },
+    ...(element.formatPreset === CUSTOM_DATE_FORMAT ? [{ name: 'format', selector: { text: {} }, __helper: t('helper_dateFormat') }] : []),
+    { name: 'size', selector: slider(14, 40, 1, 'px') },
+  ];
+}
+
+function elementSummary(element: any, hassObj: any) {
+  const t = (key: string) => localize(key, hassObj);
+  const language = languageOf(hassObj);
+  const now = new Date();
+  if (element.type === 'digitalClock') return `${formatTime(now, element.timeFormat, element.seconds)} · ${element.size} px`;
+  if (element.type === 'analogClock') return `${element.size} px · ${t(element.seconds ? 'with_second_hand' : 'without_second_hand')}`;
+  const format = element.formatPreset === CUSTOM_DATE_FORMAT ? element.format : element.formatPreset;
+  return `${moment(now)
+    .locale(language)
+    .format(format || datePresets(language)[0])} · ${element.size} px`;
 }
 
 // ha-form is loaded on demand by Home Assistant; the tile card editor pulls it in
@@ -1455,59 +1599,14 @@ async function loadHaForm() {
 
 function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
-  const language = languageOf(hassObj);
-  const now = new Date();
   const views = (lovelace && lovelace.config && Array.isArray(lovelace.config.views) ? lovelace.config.views : []).map((view, index) => ({
     value: view.path !== undefined && view.path !== null && view.path !== '' ? String(view.path) : String(index),
     label: view.title || view.path || String(index + 1),
   }));
   const color = (name: string) => ({ name, selector: { text: {} }, __helper: t('helper_color') });
-  const slider = (min: number, max: number, step: number, unit: string) => ({ number: { min, max, step, mode: 'slider', unit_of_measurement: unit } });
-  const dropdown = (options: any[]) => ({ select: { mode: 'dropdown', options } });
   const widthSelector = data.widthUnit === 'px' ? slider(0, 600, 10, 'px') : slider(0, 50, 1, '%');
-  const timeOptions = ['24', '12', '12ampm'].map((format) => ({ value: format, label: `${t('opt_time_' + format)} (${formatTime(now, format, false)})` }));
-  const dateOptions = [
-    ...datePresets(language).map((format) => ({
-      value: format,
-      label: moment(now)
-        .locale(language)
-        .format(format),
-    })),
-    { value: CUSTOM_DATE_FORMAT, label: t('opt_date_custom') },
-  ];
 
   return [
-    {
-      type: 'expandable',
-      name: '',
-      flatten: true,
-      title: t('section_header'),
-      icon: 'mdi:clock-outline',
-      expanded: true,
-      schema: [
-        {
-          type: 'grid',
-          name: '',
-          schema: [
-            { name: 'digitalClock', selector: { boolean: {} } },
-            { name: 'clock', selector: { boolean: {} } },
-            { name: 'date', selector: { boolean: {} } },
-          ],
-        },
-        ...(data.digitalClock || data.clock ? [{ name: 'seconds', selector: { boolean: {} } }] : []),
-        ...(data.digitalClock
-          ? [
-              { name: 'timeFormat', selector: dropdown(timeOptions) },
-              { name: 'clockSize', selector: slider(32, 120, 2, 'px') },
-            ]
-          : []),
-        ...(data.clock ? [{ name: 'analogClockSize', selector: slider(100, 400, 10, 'px') }] : []),
-        ...(data.date ? [{ name: 'dateFormatPreset', selector: dropdown(dateOptions) }] : []),
-        ...(data.date && data.dateFormatPreset === CUSTOM_DATE_FORMAT
-          ? [{ name: 'dateFormat', selector: { text: {} }, __helper: t('helper_dateFormat') }]
-          : []),
-      ],
-    },
     {
       type: 'expandable',
       name: '',
@@ -1629,7 +1728,8 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           name: '',
           schema: [color('background'), color('textColor'), color('iconColor'), color('accentColor'), color('dividerColor')],
         },
-        { name: 'blur', selector: slider(0, 30, 1, 'px'), __helper: t('helper_blur') },
+        { name: 'glass', selector: { boolean: {} }, __helper: t('helper_glass') },
+        ...(data.glass ? [{ name: 'blur', selector: slider(2, 30, 1, 'px') }] : []),
         { name: 'style', selector: { text: { multiline: true } } },
       ],
     },
@@ -1661,8 +1761,11 @@ class SidebarCardEditor extends LitElement {
   _ready = false;
   _saving = false;
   _error = '';
+  _expanded = -1;
+  _addOpen = false;
   _schemaKey = '';
   _schema: any[] = [];
+  _elementSchemas = new Map<string, any[]>();
 
   static get properties() {
     return {
@@ -1672,6 +1775,8 @@ class SidebarCardEditor extends LitElement {
       _ready: { attribute: false },
       _saving: { attribute: false },
       _error: { attribute: false },
+      _expanded: { attribute: false },
+      _addOpen: { attribute: false },
     };
   }
 
@@ -1692,13 +1797,10 @@ class SidebarCardEditor extends LitElement {
     const views = this.lovelace && this.lovelace.config ? this.lovelace.config.views : [];
     const key = JSON.stringify([
       this.hass && this.hass.language,
-      d.digitalClock,
-      d.clock,
-      d.date,
-      d.dateFormatPreset === CUSTOM_DATE_FORMAT,
       d.viewMenu,
       d.bottomButtonsLayout,
       d.widthUnit,
+      d.glass,
       d.hideTopMenu,
       (views || []).map((view) => [view.path, view.title]),
     ]);
@@ -1710,20 +1812,26 @@ class SidebarCardEditor extends LitElement {
     return this._schema;
   }
 
+  _getElementSchema(element: any) {
+    const key = [element.type, element.formatPreset === CUSTOM_DATE_FORMAT, this.hass && this.hass.language].join('|');
+    if (!this._elementSchemas.has(key)) this._elementSchemas.set(key, elementSchema(element, this.hass));
+    return this._elementSchemas.get(key);
+  }
+
   render() {
     const t = (key: string) => localize(key, this.hass);
     return html`
       <div class="panel" role="dialog" aria-label="${t('editor_title')}">
         <div class="header">
-          <ha-icon icon="mdi:dock-left"></ha-icon>
-          <h2>${t('editor_title')}</h2>
           <button class="icon" title="${t('cancel')}" @click=${() => this._close(false)}>
             <ha-icon icon="mdi:close"></ha-icon>
           </button>
+          <h2>${t('editor_title')}</h2>
         </div>
         <div class="content">
           ${this._ready
             ? html`
+                ${this._renderElements()}
                 <ha-form
                   .hass=${this.hass}
                   .data=${this._data}
@@ -1750,18 +1858,182 @@ class SidebarCardEditor extends LitElement {
     `;
   }
 
+  // clocks and dates: add, reorder by dragging the handle, open one to change it
+  _renderElements() {
+    const t = (key: string) => localize(key, this.hass);
+    const elements = this._data.elements || [];
+    return html`
+      <ha-expansion-panel outlined expanded class="elements-panel">
+        <ha-icon slot="leading-icon" icon="mdi:clock-outline"></ha-icon>
+        <div slot="header" role="heading" aria-level="3">${t('section_header')}</div>
+        <div class="elements-content">
+          <div class="elements">
+            ${elements.map(
+              (element, index) => html`
+                <div class="element${this._expanded === index ? ' expanded' : ''}">
+                  <div class="element-row">
+                    <span class="handle" title="${t('move_element')}" @pointerdown=${(ev) => this._dragStart(ev, index)}>
+                      <ha-icon icon="mdi:drag"></ha-icon>
+                    </span>
+                    <ha-icon class="element-icon" .icon=${ELEMENT_TYPES[element.type].icon}></ha-icon>
+                    <div class="element-info" @click=${() => this._toggleElement(index)}>
+                      <span class="element-name">${t('element_' + element.type)}</span>
+                      <span class="element-summary">${elementSummary(element, this.hass)}</span>
+                    </div>
+                    <button class="icon" title="${t('edit_element')}" @click=${() => this._toggleElement(index)}>
+                      <ha-icon .icon=${this._expanded === index ? 'mdi:chevron-up' : 'mdi:pencil'}></ha-icon>
+                    </button>
+                    <button class="icon" title="${t('remove_element')}" @click=${() => this._removeElement(index)}>
+                      <ha-icon icon="mdi:delete-outline"></ha-icon>
+                    </button>
+                  </div>
+                  ${this._expanded === index
+                    ? html`
+                        <div class="element-form">
+                          <ha-form
+                            .hass=${this.hass}
+                            .data=${element}
+                            .schema=${this._getElementSchema(element)}
+                            .computeLabel=${this._computeLabel}
+                            .computeHelper=${this._computeHelper}
+                            @value-changed=${(ev) => this._elementChanged(ev, index)}
+                          ></ha-form>
+                        </div>
+                      `
+                    : ''}
+                </div>
+              `,
+            )}
+          </div>
+          ${elements.length === 0
+            ? html`
+                <p class="hint">${t('no_elements')}</p>
+              `
+            : ''}
+          ${this._addOpen
+            ? html`
+                <div class="add-menu">
+                  ${Object.keys(ELEMENT_TYPES).map(
+                    (type) => html`
+                      <button class="add-option" @click=${() => this._addElement(type)}>
+                        <ha-icon .icon=${ELEMENT_TYPES[type].icon}></ha-icon>
+                        <span>${t('element_' + type)}</span>
+                      </button>
+                    `,
+                  )}
+                </div>
+              `
+            : ''}
+          <button class="add-button" @click=${() => (this._addOpen = !this._addOpen)}>
+            <ha-icon .icon=${this._addOpen ? 'mdi:close' : 'mdi:plus'}></ha-icon>
+            <span>${this._addOpen ? t('cancel') : t('add_element')}</span>
+          </button>
+        </div>
+      </ha-expansion-panel>
+    `;
+  }
+
+  _setElements(elements: any[]) {
+    this._update(Object.assign({}, this._data, { elements }));
+  }
+
+  _toggleElement(index: number) {
+    this._expanded = this._expanded === index ? -1 : index;
+  }
+
+  _addElement(type: string) {
+    const elements = [...(this._data.elements || []), toElementFormData({ type }, languageOf(this.hass))];
+    this._addOpen = false;
+    this._expanded = elements.length - 1;
+    this._setElements(elements);
+  }
+
+  _removeElement(index: number) {
+    const elements = [...(this._data.elements || [])];
+    elements.splice(index, 1);
+    if (this._expanded === index) this._expanded = -1;
+    else if (this._expanded > index) this._expanded -= 1;
+    this._setElements(elements);
+  }
+
+  _moveElement(from: number, to: number) {
+    const elements = [...(this._data.elements || [])];
+    const [moved] = elements.splice(from, 1);
+    elements.splice(to, 0, moved);
+    if (this._expanded === from) this._expanded = to;
+    else if (this._expanded > from && this._expanded <= to) this._expanded -= 1;
+    else if (this._expanded < from && this._expanded >= to) this._expanded += 1;
+    this._setElements(elements);
+  }
+
+  _elementChanged(ev: any, index: number) {
+    ev.stopPropagation();
+    const elements = [...(this._data.elements || [])];
+    const previous = elements[index];
+    const element = Object.assign({}, ev.detail.value);
+    // a chosen preset is copied into the custom field, so "custom" starts from it
+    if (element.formatPreset !== previous.formatPreset && element.formatPreset !== CUSTOM_DATE_FORMAT) element.format = element.formatPreset;
+    elements[index] = element;
+    this._setElements(elements);
+  }
+
+  // pointer events work with mouse and touch; the other rows make room while one is dragged
+  _dragStart(ev: PointerEvent, index: number) {
+    const handle = ev.currentTarget as HTMLElement;
+    const list = this.shadowRoot && (this.shadowRoot as any).querySelector('.elements');
+    const rows = list ? (Array.from(list.children) as HTMLElement[]) : [];
+    if (rows.length < 2) return;
+    ev.preventDefault();
+    const rects = rows.map((row) => row.getBoundingClientRect());
+    const dragged = rows[index];
+    const step = rects[index].height + 8;
+    const startY = ev.clientY;
+    let target = index;
+    list.classList.add('sorting');
+    dragged.classList.add('dragging');
+    handle.setPointerCapture(ev.pointerId);
+
+    const move = (moveEvent: PointerEvent) => {
+      const dy = moveEvent.clientY - startY;
+      dragged.style.transform = `translateY(${dy}px)`;
+      const center = rects[index].top + rects[index].height / 2 + dy;
+      target = index;
+      for (let i = index + 1; i < rects.length; i++) if (center > rects[i].top + rects[i].height / 2) target = i;
+      for (let i = index - 1; i >= 0; i--) if (center < rects[i].top + rects[i].height / 2) target = i;
+      rows.forEach((row, i) => {
+        if (i === index) return;
+        const shift = index < target && i > index && i <= target ? -step : index > target && i >= target && i < index ? step : 0;
+        row.style.transform = shift ? `translateY(${shift}px)` : '';
+      });
+    };
+    const end = () => {
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', end);
+      handle.removeEventListener('pointercancel', end);
+      list.classList.remove('sorting');
+      dragged.classList.remove('dragging');
+      rows.forEach((row) => (row.style.transform = ''));
+      if (target !== index) this._moveElement(index, target);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', end);
+    handle.addEventListener('pointercancel', end);
+  }
+
   _valueChanged(ev: any) {
     ev.stopPropagation();
     const previous = this._data;
-    const data = Object.assign({}, ev.detail.value);
-    // a chosen preset is copied into the custom field, so "custom" starts from it
-    if (data.dateFormatPreset !== previous.dateFormatPreset && data.dateFormatPreset !== CUSTOM_DATE_FORMAT) {
-      data.dateFormat = data.dateFormatPreset;
-    }
+    const data = Object.assign({}, ev.detail.value, { elements: previous.elements });
     if (data.widthUnit !== previous.widthUnit && data.width) {
       data.width = convertWidth(data.width, data.widthUnit);
     }
+    this._update(data);
+  }
+
+  _update(data: any) {
     this._data = data;
+    // the panel moves to the other side together with the sidebar
+    this.side = data.showRight ? 'left' : 'right';
     if (this.onPreview) this.onPreview(fromFormData(data, this.hass));
   }
 
@@ -1811,22 +2083,28 @@ class SidebarCardEditor extends LitElement {
         background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
         box-shadow: 0 0 24px rgba(0, 0, 0, 0.3);
       }
+      /* like ha-dialog-header: close button first, then the title */
       .header {
         display: flex;
         align-items: center;
-        gap: 12px;
-        padding: 12px 8px 12px 20px;
-        padding-top: calc(12px + env(safe-area-inset-top));
+        gap: 4px;
+        min-height: 64px;
+        padding: 0 8px;
+        padding-top: env(safe-area-inset-top);
+        box-sizing: border-box;
         border-bottom: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
-      }
-      .header ha-icon {
-        color: var(--primary-color, #03a9f4);
       }
       h2 {
         flex: 1;
+        min-width: 0;
         margin: 0;
-        font-size: 20px;
-        font-weight: 400;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        font-size: var(--ha-font-size-xl, 20px);
+        font-weight: var(--ha-font-weight-medium, 500);
+        line-height: 1.2;
+        color: var(--primary-text-color, #212121);
       }
       .content {
         flex: 1 1 auto;
@@ -1837,9 +2115,10 @@ class SidebarCardEditor extends LitElement {
         display: block;
       }
       .hint {
+        margin: 0 0 8px;
         color: var(--secondary-text-color, #727272);
-        font-size: 13px;
-        line-height: 18px;
+        font-size: 14px;
+        line-height: 20px;
       }
       .footer {
         display: flex;
@@ -1861,11 +2140,16 @@ class SidebarCardEditor extends LitElement {
       }
       button.icon {
         display: flex;
-        padding: 8px;
+        flex: none;
+        align-items: center;
+        justify-content: center;
+        width: 48px;
+        height: 48px;
+        padding: 0;
         border: none;
         border-radius: 50%;
         background: transparent;
-        color: var(--secondary-text-color, #727272);
+        color: var(--primary-text-color, #212121);
       }
       button.icon:hover {
         background: rgba(127, 127, 127, 0.12);
@@ -1891,6 +2175,122 @@ class SidebarCardEditor extends LitElement {
       button[disabled] {
         opacity: 0.5;
         cursor: default;
+      }
+
+      /* clocks and dates, styled like the expandable sections of ha-form */
+      .elements-panel {
+        display: block;
+        margin-bottom: 24px;
+        --expansion-panel-content-padding: 0;
+        border-radius: var(--ha-border-radius-md, 8px);
+        --ha-card-border-radius: var(--ha-border-radius-md, 8px);
+      }
+      .elements-panel:not(:defined) {
+        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+        padding: 12px;
+      }
+      .elements-panel > ha-icon {
+        color: var(--secondary-text-color, #727272);
+      }
+      .elements-content {
+        padding: 12px;
+      }
+      .elements {
+        display: flex;
+        flex-direction: column;
+        gap: 8px;
+      }
+      .element {
+        position: relative;
+        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+        border-radius: var(--ha-border-radius-md, 8px);
+        background: var(--ha-dialog-surface-background, var(--card-background-color, #fff));
+      }
+      .elements.sorting .element:not(.dragging) {
+        transition: transform 0.15s ease;
+      }
+      .element.dragging {
+        z-index: 1;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+      }
+      .element-row {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        min-height: 56px;
+        padding-right: 4px;
+      }
+      .handle {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        align-self: stretch;
+        width: 40px;
+        color: var(--secondary-text-color, #727272);
+        cursor: grab;
+        touch-action: none;
+      }
+      .element.dragging .handle {
+        cursor: grabbing;
+      }
+      .element-icon {
+        flex: none;
+        color: var(--secondary-text-color, #727272);
+      }
+      .element-info {
+        display: flex;
+        flex: 1 1 auto;
+        flex-direction: column;
+        min-width: 0;
+        padding: 8px 4px 8px 12px;
+        cursor: pointer;
+      }
+      .element-name {
+        font-size: 15px;
+        line-height: 20px;
+      }
+      .element-summary {
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+        color: var(--secondary-text-color, #727272);
+        font-size: 13px;
+        line-height: 18px;
+      }
+      .element-form {
+        padding: 8px 16px 16px;
+        border-top: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+      }
+      .add-menu {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
+        margin-top: 12px;
+      }
+      .add-option,
+      .add-button {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        height: 40px;
+        padding: 0 16px 0 12px;
+        border-radius: 20px;
+        font-size: 14px;
+        font-weight: 500;
+      }
+      .add-option {
+        border: 1px solid var(--divider-color, rgba(0, 0, 0, 0.12));
+        background: transparent;
+        color: var(--primary-text-color, #212121);
+      }
+      .add-option ha-icon {
+        color: var(--secondary-text-color, #727272);
+      }
+      .add-button {
+        margin-top: 12px;
+        border: none;
+        background: rgba(var(--rgb-primary-color, 3, 169, 244), 0.12);
+        color: var(--primary-color, #03a9f4);
       }
     `;
   }
@@ -2065,13 +2465,17 @@ function isTopMenuHidden(sidebarConfig: any, width: number, editMode = false) {
   return (
     !editMode &&
     sidebarConfig.hideTopMenu === true &&
-    getParameterByName('sidebarOff') == null &&
+    !isHassUiForced() &&
     !(sidebarConfig.showTopMenuOnMobile === true && width <= (sidebarConfig.breakpoints?.mobile ?? 768))
   );
 }
 
 // hides or restores the HA sidebar
 function setHassSidebarHidden(hidden: boolean) {
+  withoutAnimation(() => applyHassSidebarHidden(hidden));
+}
+
+function applyHassSidebarHidden(hidden: boolean) {
   const hassSidebar = getSidebar();
   if (hassSidebar) {
     hassSidebar.style.display = hidden ? 'none' : '';
@@ -2109,6 +2513,28 @@ function setHassSidebarHidden(hidden: boolean) {
       shellStyle.remove();
     }
   }
+}
+
+// ?sidebar=true shows the HA header and sidebar again until the page is reloaded, ?sidebar=false hides them again
+// (?sidebarOff is the older name)
+let hassUiForced = false;
+function isHassUiForced() {
+  const value = getParameterByName('sidebar');
+  if (value !== null) hassUiForced = value === '' || value === 'true' || value === '1';
+  if (getParameterByName('sidebarOff') !== null) hassUiForced = true;
+  return hassUiForced;
+}
+
+// switches the HA sidebar without its slide animation
+function withoutAnimation(change: () => void) {
+  const homeAssistant: any = document.querySelector('home-assistant');
+  const names = ['--ha-animation-duration-fast', '--ha-animation-duration-normal', '--ha-animation-duration-slow'];
+  if (homeAssistant) names.forEach((name) => homeAssistant.style.setProperty(name, '0ms'));
+  change();
+  clearTimeout((withoutAnimation as any).timer);
+  (withoutAnimation as any).timer = setTimeout(() => {
+    if (homeAssistant) names.forEach((name) => homeAssistant.style.removeProperty(name));
+  }, 600);
 }
 
 // Returns a query parameter by its name
@@ -2226,10 +2652,13 @@ function addListener(state: SidebarState, target: any, type: string, handler: an
 // HA keeps the docked state per browser; remember what it was so we can put it back
 const DOCK_STORAGE_KEY = 'sidebar-card-dock-before';
 
+// 'docked' (expanded), 'auto' (narrow icon bar) or 'always_hidden' (behind the menu button)
 function dockHassSidebar(dock: string) {
-  document
-    .querySelector('home-assistant')
-    ?.dispatchEvent(new CustomEvent('hass-dock-sidebar', { detail: { dock }, bubbles: true, composed: true }));
+  withoutAnimation(() =>
+    document
+      .querySelector('home-assistant')
+      ?.dispatchEvent(new CustomEvent('hass-dock-sidebar', { detail: { dock }, bubbles: true, composed: true })),
+  );
 }
 
 function readDockBefore() {
@@ -2249,17 +2678,18 @@ function writeDockBefore(value: string | null) {
   }
 }
 
-// dockHassSidebar folds the HA sidebar away (like the profile setting "always hidden") while this dashboard is shown
+// dockHassSidebar collapses the HA sidebar to its narrow icon bar while this dashboard is shown
 function applyDock(state: SidebarState | null, wanted: boolean) {
   const homeAssistant: any = document.querySelector('home-assistant');
   const docked = homeAssistant && homeAssistant.hass ? homeAssistant.hass.dockedSidebar : undefined;
   const before = readDockBefore();
   if (wanted) {
-    if (before === null) writeDockBefore(docked && docked !== 'always_hidden' ? docked : 'unchanged');
-    if (docked !== 'always_hidden') dockHassSidebar('always_hidden');
+    if (before === null) writeDockBefore(docked && docked !== 'auto' ? docked : 'unchanged');
+    if (docked !== 'auto') dockHassSidebar('auto');
     if (state) state.docked = true;
   } else if ((state && state.docked) || before !== null) {
-    if (before && before !== 'unchanged' && docked === 'always_hidden') dockHassSidebar(before);
+    // only if nobody changed it meanwhile; 0.3.1 used always_hidden
+    if (before && before !== 'unchanged' && (docked === 'auto' || docked === 'always_hidden')) dockHassSidebar(before);
     writeDockBefore(null);
     if (state) state.docked = false;
   }
@@ -2271,7 +2701,7 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   if (!state.appLayout.isConnected) return;
   const config = withDefaults(sidebarConfig);
   const width = document.body.clientWidth;
-  const offParam = getParameterByName('sidebarOff');
+  const forced = isHassUiForced();
   const editMode = !!(state.lovelace && state.lovelace.editMode);
   const hideTopMenu = isTopMenuHidden(config, width, editMode);
 
@@ -2299,10 +2729,12 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   const css = createCSS(config, width, editMode);
   if (state.style.textContent !== css) state.style.textContent = css;
 
-  applyDock(state, config.dockHassSidebar === true && offParam == null);
+  // only when the option changes, so the menu button can still expand the HA sidebar
+  const wantDock = config.dockHassSidebar === true && !forced;
+  if (wantDock !== state.docked) applyDock(state, wantDock);
 
   const hideHassSidebar =
-    config.hideHassSidebar === true && offParam == null && !(config.showTopMenuOnMobile === true && width <= config.breakpoints.mobile);
+    config.hideHassSidebar === true && !forced && !(config.showTopMenuOnMobile === true && width <= config.breakpoints.mobile);
   if (hideHassSidebar || state.hassSidebarHidden) {
     // keep the HA sidebar usable when its menu button is shown on mobile (#74, #145)
     setHassSidebarHidden(hideHassSidebar);

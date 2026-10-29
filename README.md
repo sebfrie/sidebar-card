@@ -48,13 +48,14 @@ views:
 ### Editing in the dashboard editor
 
 You do not need YAML for the sidebar. Add an empty `sidebar: {}` once in the raw configuration editor of the dashboard,
-then open the dashboard's edit mode: the sidebar shows a round pencil button in its top right corner. It opens a panel
-next to the sidebar with all options below, shows every change live and saves it into the dashboard config. The views
-themselves stay normal Home Assistant views with native cards that you edit as usual.
+then open the dashboard's edit mode: a pencil flag sticks out of the sidebar's outer edge. It opens a panel on the other
+side of the screen with all options below, shows every change live and saves it into the dashboard config. Clocks and
+dates are a list there: add them with a button, drag them into order, open one to change it. The views themselves stay
+normal Home Assistant views with native cards that you edit as usual.
 
 In edit mode the Home Assistant header is always shown, even with `hideTopMenu`. To get into edit mode while the header
-is hidden, add `?edit=1` to the dashboard's address (e.g. `/dashboard-home/home?edit=1`); `?sidebarOff` shows the
-header and the Home Assistant sidebar again until you switch views.
+is hidden, add `?edit=1` to the dashboard's address (e.g. `/dashboard-home/home?edit=1`); `?sidebar=true` shows the
+header and the Home Assistant sidebar again until the page is reloaded (`?sidebar=false` hides them again).
 
 ### Main Options
 
@@ -63,16 +64,13 @@ Under `sidebar:` you can configure the following options:
 | Name | Type | Default | Supported Options | Description |
 | -------------- | ----------- | ------------ | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `title` | string | optional | `Title` | Title to show in the sidebar |
-| `clock` | boolean | optional | `true` | Show analog clock in sidebar |
+| `elements` | list | optional | *see info below* | Clocks and dates at the top of the sidebar, in this order |
+| `clock` | boolean | optional | `true` | Show analog clock in sidebar (older option, `elements` replaces it) |
 | `date` | boolean | optional | `false` | If date is enabled it will display the current date |
 | `dateFormat` | string | optional | `dddd, D. MMMM` (German), `dddd, MMMM D` (other languages) | If date is enabled you define how it should show the date with dateFormat, to see the options check this url: [https://momentjs.com/docs/#/parsing/string-format/](https://momentjs.com/docs/#/parsing/string-format/) |
-| `digitalClock` | boolean | optional | `true` | Show digital clock in sidebar |
-| `seconds` | boolean | optional | `false` | Show seconds on the digital clock and the second hand on the analog clock |
-| `timeFormat` | string | optional | `24` | `24`, `12` or `12ampm` |
-| `digitalClockWithSeconds`, `twelveHourVersion`, `period` | boolean | optional | | Older options, still read; the editor replaces them by `seconds` and `timeFormat`. Without `seconds`, an analog clock on its own keeps its second hand |
+| `digitalClock` | boolean | optional | `true` | Show digital clock in sidebar (older option, `elements` replaces it) |
+| `digitalClockWithSeconds`, `twelveHourVersion`, `period`, `seconds`, `timeFormat`, `clockSize`, `analogClockSize` | | optional | | Older clock options, still read when there is no `elements` list; the editor converts them |
 | `showRight` | boolean | optional | `false` | If showRight is enabled the sidebar will be shown on the right side of the screen |
-| `clockSize` | number | optional | `60` | Font size of the digital clock in px |
-| `analogClockSize` | number | optional | `220` | Size of the analog clock in px, never wider than the sidebar |
 | `viewMenu` | boolean | optional | `false` | Show one menu item per view of the dashboard, with the view's title and icon. Subviews and views hidden for the user are left out. New views show up on their own |
 | `viewMenuExclude` | list | optional | | Paths (or indexes) of views to leave out of `viewMenu` |
 | `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want. Shown below the views of `viewMenu` |
@@ -86,7 +84,8 @@ Under `sidebar:` you can configure the following options:
 | `iconColor` | string | optional | secondary text color | Color of the menu and button icons |
 | `accentColor` | string | optional | primary color | Color of the active menu item and of active buttons |
 | `dividerColor` | string | optional | divider color | Color of the divider lines |
-| `blur` | number | optional | | Blur of what is behind the sidebar in px, for a glass effect together with a transparent `background` |
+| `glass` | boolean | optional | `false` | Glass effect: the sidebar becomes semi-transparent and blurs the dashboard background behind it. With your own `background`, its transparency is used |
+| `blur` | number | optional | `12` | Strength of the glass effect's blur in px |
 | `widthUnit` | string | optional | `%` | `%` or `px`, the unit of the numbers in `width` |
 | `updateMenu` | boolean | optional | `true` | When false the active state of the sidebar will not change by navigating to a different view |
 | `template` | template | optional | *see info below* | Template rules that will show messages to inform you for example with how many lights are on |
@@ -96,13 +95,33 @@ Under `sidebar:` you can configure the following options:
 | `bottomCard` | object | optional | *see info below* | Define any card that will be rendered at the bottom of the sidebar |
 | `showTopMenuOnMobile` | boolean | optional | `true` | If you hide the top menu you can set this to `true` so that it will be shown on mobile |
 | `hideHassSidebar` | boolean | optional | `true` | Hide the home assistant sidebar |
-| `dockHassSidebar` | boolean | optional | `false` | Collapse the home assistant sidebar behind the menu button (like the profile setting "always hide the sidebar") while this dashboard is shown; the previous setting comes back when you leave the dashboard or switch the option off |
+| `dockHassSidebar` | boolean | optional | `false` | Collapse the home assistant sidebar to its narrow icon bar (without animation) while this dashboard is shown; the menu button still expands it, and the previous setting comes back when you leave the dashboard or switch the option off |
 | `hideOnPath` | array | optional | /lovelace/camera | If you don't want the sidebar on every path you can add a list of paths where it should hide the sidebar. Use the full path from the browser address bar without host and query, e.g. `/lovelace/camera` or `/dashboard-kiosk/cameras` |
 | `hideTopMenu` | boolean | optional | `true` | Hide the top home assistant menu |
 | `debug` | boolean | optional | `false` | Show debugging messages in the browser's developer console |
 
-When using **hideTopMenu** and/or **hideHassSidebar** you can disable this by adding `?sidebarOff` to the url.
-For example you get this url: [https://myhomeassistant.duckdns.org/lovelace/home?sidebarOff](https://myhomeassistant.duckdns.org/lovelace/home?sidebarOff)
+When using **hideTopMenu**, **hideHassSidebar** and/or **dockHassSidebar** you can disable this by adding `?sidebar=true` to the url
+until the page is reloaded (`?sidebarOff` still works). For example: `https://myhomeassistant.duckdns.org/lovelace/home?sidebar=true`
+
+#### Elements
+
+`elements` lists the clocks and dates at the top of the sidebar; each type has its own options:
+
+| Type | Options |
+| --- | --- |
+| `digitalClock` | `timeFormat` (`24`, `12`, `12ampm`; default `24`), `seconds` (default `false`), `size` (largest font size in px, default `60`; the time always fits the sidebar) |
+| `analogClock` | `seconds` (second hand, default `true`), `size` (px, default `220`, never wider than the sidebar) |
+| `date` | `format` (moment.js, default `dddd, D. MMMM` in German, `dddd, MMMM D` otherwise), `size` (px, default `22`) |
+
+```yaml
+sidebar:
+  elements:
+    - type: digitalClock
+    - type: analogClock
+      seconds: false
+    - type: date
+      format: dd, D.M.
+```
 
 #### Width
 
