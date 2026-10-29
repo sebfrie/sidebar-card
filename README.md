@@ -45,6 +45,13 @@ views:
 ...
 ```
 
+### Editing in the dashboard editor
+
+You do not need YAML for the sidebar. Add an empty `sidebar: {}` once in the raw configuration editor of the dashboard,
+then open the dashboard's edit mode: the sidebar shows an **Edit sidebar** button. It opens a panel next to the sidebar
+with all options below, shows every change live and saves it into the dashboard config. The views themselves stay
+normal Home Assistant views with native cards that you edit as usual.
+
 ### Main Options
 
 Under `sidebar:` you can configure the following options:
@@ -60,11 +67,27 @@ Under `sidebar:` you can configure the following options:
 | `twelveHourVersion` | boolean | optional | `false` | If digitalClock is enabled you can also enable this to 12 hour version |
 | `period` | boolean | optional | `false` | If twelveHourVersion is enabled you can enable this to show 'AM' or 'PM' |
 | `showRight` | boolean | optional | `false` | If showRight is enabled the sidebar will be shown on the right side of the screen |
-| `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want |
+| `clockSize` | number | optional | `60` | Font size of the digital clock in px |
+| `analogClockSize` | number | optional | `220` | Size of the analog clock in px, never wider than the sidebar |
+| `viewMenu` | boolean | optional | `false` | Show one menu item per view of the dashboard, with the view's title and icon. Subviews and views hidden for the user are left out. New views show up on their own |
+| `viewMenuExclude` | list | optional | | Paths (or indexes) of views to leave out of `viewMenu` |
+| `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want. Shown below the views of `viewMenu` |
+| `menuIcons` | string | optional | `left` | `left`, `right` or `none`: where menu icons are shown |
+| `menuFontSize` | number | optional | `18` | Font size of the menu in px |
+| `bottomButtons` | list | optional | *see info below* | Entities and buttons pinned to the bottom of the sidebar |
+| `bottomButtonsLayout` | string | optional | `row` | `row` (icon bar) or `list` (icon, name and state) |
+| `bottomButtonsShowName` | boolean | optional | `false` | Show names below the icons in the `row` layout |
+| `background` | string | optional | card background | Any CSS color of the sidebar, e.g. `rgba(0, 0, 0, 0.4)` |
+| `textColor` | string | optional | primary text color | Text color |
+| `iconColor` | string | optional | secondary text color | Color of the menu and button icons |
+| `accentColor` | string | optional | primary color | Color of the active menu item and of active buttons |
+| `dividerColor` | string | optional | divider color | Color of the divider lines |
+| `blur` | number | optional | | Blur of what is behind the sidebar in px, for a glass effect together with a transparent `background` |
+| `widthUnit` | string | optional | `%` | `%` or `px`, the unit of the numbers in `width` |
 | `updateMenu` | boolean | optional | `true` | When false the active state of the sidebar will not change by navigating to a different view |
 | `template` | template | optional | *see info below* | Template rules that will show messages to inform you for example with how many lights are on |
 | `style` | css | optional | *see info below* | Overwrite some color variables or write your own styles |
-| `width` | object | optional | *see info below* | The width of the sidebar in percentages for different screens |
+| `width` | object | optional | *see info below* | The width of the sidebar for different screens, in percent or pixels (`widthUnit`) |
 | `breakpoints` | object | optional | *see info below* | For the width we set different sizes for different screens with breakpoints you can overwrite these breakpoints |
 | `bottomCard` | object | optional | *see info below* | Define any card that will be rendered at the bottom of the sidebar |
 | `showTopMenuOnMobile` | boolean | optional | `true` | If you hide the top menu you can set this to `true` so that it will be shown on mobile |
@@ -82,6 +105,8 @@ For example you get this url: [https://myhomeassistant.duckdns.org/lovelace/home
 The width of the sidebar can be manually specified. By default it will be `25%` of the width on all screens.
 With the `width` option you can set the width for 3 sizes: `mobile`, `tablet` and `desktop`.
 You can also set the width to `0` to make the sidebar not appear.
+
+The numbers are percent unless `widthUnit: px` is set; a string such as `280px` or `22vw` is used as it is.
 
 Example to set width (This example hides the sidebar on mobile):
 
@@ -185,9 +210,9 @@ sidebar:
 
 #### Style
 
-By default there are some variables that you can set to change colors.
-Of course you can also add your own styles to customize it more.
-In the below example you can find the variables with the default colors.
+By default the sidebar follows your theme (card background, primary text and primary color).
+The design options `background`, `textColor`, `iconColor`, `accentColor` and `dividerColor` cover most needs;
+the variables below go further, and of course you can also add your own styles.
 
 Example:
 
@@ -206,6 +231,33 @@ sidebar:
         --sidebar-divider-color: rgba(255, 255, 255, 0.2);
     }
 
+```
+
+#### Bottom buttons
+
+`bottomButtons` pins entities or plain buttons to the bottom of the sidebar; the menu above scrolls when it gets long.
+Every item takes the usual card options:
+
+| Name | Description |
+| --- | --- |
+| `entity` | Entity to show; its icon and color follow the state |
+| `name` | Name, defaults to the entity's name |
+| `icon` | Icon, defaults to the entity's icon |
+| `tap_action` | Any Home Assistant action. Default: toggle for lights, switches, fans, input booleans, automations and scripts, more-info for everything else |
+| `hold_action` | Any Home Assistant action. Default: more-info |
+
+```yaml
+sidebar:
+  bottomButtons:
+    - entity: light.living_room
+    - entity: lock.front_door
+      tap_action:
+        action: more-info
+    - name: Assist
+      icon: mdi:microphone
+      tap_action:
+        action: assist
+  bottomButtonsLayout: row
 ```
 
 #### Bottom Custom Card
