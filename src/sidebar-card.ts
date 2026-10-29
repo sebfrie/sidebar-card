@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.6.0';
+const SIDEBAR_CARD_VERSION = '0.7.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -47,7 +47,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     save_error: 'Saving failed: ',
     section_header: 'Clock & date',
     section_menu: 'Menu',
-    section_bottom: 'Pinned to the bottom',
+    section_bottom: 'Footer',
     section_layout: 'Width & position',
     section_design: 'Design',
     section_advanced: 'Advanced',
@@ -107,7 +107,9 @@ const STRINGS: Record<string, Record<string, string>> = {
     opt_date_custom: 'Custom format…',
     helper_dateFormat: 'Moment.js format, e.g. dddd, D MMMM',
     helper_width: '0 hides the sidebar on that screen size.',
-    helper_hideOnPath: 'Path from the address bar, e.g. /dashboard-home/cameras',
+    placeholder_path: '/dashboard-home/cameras',
+    label_menuIconSize: 'Menu icon size',
+    label_menuIconGap: 'Space between icon and text',
     helper_template: 'Every line as <li>…</li>',
     label_timeZone: 'Time zone',
     opt_tz_local: 'This device',
@@ -116,7 +118,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_menuItemSpacing: 'Space between menu items',
     label_menuPosition: 'Menu position',
     label_elements: '',
-    opt_pos_top: 'Top (right below the clocks)',
+    opt_pos_top: 'Top',
     opt_pos_center: 'Middle',
     opt_pos_bottom: 'Bottom',
     helper_timeZone: 'Empty: the time zone of Home Assistant{zone}',
@@ -158,7 +160,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     save_error: 'Speichern fehlgeschlagen: ',
     section_header: 'Uhr & Datum',
     section_menu: 'Menü',
-    section_bottom: 'Unten fixiert',
+    section_bottom: 'Fußzeile',
     section_layout: 'Breite & Position',
     section_design: 'Design',
     section_advanced: 'Erweitert',
@@ -218,7 +220,9 @@ const STRINGS: Record<string, Record<string, string>> = {
     opt_date_custom: 'Eigenes Format…',
     helper_dateFormat: 'Moment.js-Format, z. B. dddd, D. MMMM',
     helper_width: '0 blendet die Seitenleiste bei dieser Bildschirmgröße aus.',
-    helper_hideOnPath: 'Pfad aus der Adresszeile, z. B. /dashboard-home/kameras',
+    placeholder_path: '/dashboard-home/kameras',
+    label_menuIconSize: 'Größe der Menü-Icons',
+    label_menuIconGap: 'Abstand zwischen Icon und Text',
     helper_template: 'Jede Zeile als <li>…</li>',
     label_timeZone: 'Zeitzone',
     opt_tz_local: 'Dieses Gerät',
@@ -227,7 +231,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_menuItemSpacing: 'Abstand zwischen Menüeinträgen',
     label_menuPosition: 'Position des Menüs',
     label_elements: '',
-    opt_pos_top: 'Oben (direkt unter Uhr und Datum)',
+    opt_pos_top: 'Oben',
     opt_pos_center: 'Mitte',
     opt_pos_bottom: 'Unten',
     helper_timeZone: 'Leer: Zeitzone von Home Assistant{zone}',
@@ -427,6 +431,14 @@ function elementsOf(config: any): any[] {
 const GLASS_BLUR = 12;
 const SHADOW_SIZE = 12;
 const MENU_ITEM_SPACING = 4;
+
+// without their own value, menu icons and their gap grow with the menu font (as the CSS does)
+function autoIconSize(fontSize: number) {
+  return Math.max(24, Math.round((Number(fontSize) || 18) * 1.3));
+}
+function autoIconGap(fontSize: number) {
+  return Math.round((Number(fontSize) || 18) * 0.75);
+}
 
 // theme color names (as HA's color picker stores them) become theme variables
 const THEME_COLORS = [
@@ -1103,6 +1115,8 @@ class SidebarCard extends LitElement {
       '--sidebar-shadow': c.shadow ? shadowCss(c) : undefined,
       '--sidebar-blur': isGlass(c) ? `${c.blur || GLASS_BLUR}px` : undefined,
       '--sidebar-menu-font-size': c.menuFontSize ? `${c.menuFontSize}px` : undefined,
+      '--sidebar-menu-icon-size': c.menuIconSize ? `${c.menuIconSize}px` : undefined,
+      '--sidebar-menu-icon-gap': c.menuIconGap !== undefined && c.menuIconGap !== null && c.menuIconGap !== '' ? `${c.menuIconGap}px` : undefined,
     };
     Object.keys(properties).forEach((name) => {
       const value = properties[name];
@@ -1289,7 +1303,7 @@ class SidebarCard extends LitElement {
         position: relative;
         display: flex;
         align-items: center;
-        gap: 0.75em;
+        gap: var(--sidebar-menu-icon-gap, 0.75em);
         margin: 0;
         padding: 0.5em 0.85em;
         border-radius: var(--sidebar-item-radius, 12px);
@@ -1315,7 +1329,7 @@ class SidebarCard extends LitElement {
       .sidebarMenu li ha-icon {
         flex: none;
         color: var(--sb-icon);
-        --mdc-icon-size: max(24px, 1.3em);
+        --mdc-icon-size: var(--sidebar-menu-icon-size, max(24px, 1.3em));
       }
       .sidebarMenu li::before {
         content: '';
@@ -1669,6 +1683,11 @@ function fromFormData(formData: any, hassObj: any) {
     delete data.blur;
   }
   if (!data.shadow) delete data.shadowSize;
+  // icon size and gap equal to what the font size gives are not stored, so they keep following it
+  const fontSize = data.menuFontSize || EDITOR_DEFAULTS.menuFontSize;
+  if (data.menuIcons === 'none' || data.menuIconSize === autoIconSize(fontSize)) delete data.menuIconSize;
+  if (data.menuIcons === 'none' || data.menuIconGap === autoIconGap(fontSize)) delete data.menuIconGap;
+  data.hideOnPath = (data.hideOnPath || []).map((path) => String(path).trim()).filter((path) => path !== '');
   // "from the theme" is the color picker's default
   COLOR_KEYS.forEach((key) => data[key] === 'theme' && delete data[key]);
 
@@ -1958,6 +1977,13 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           { value: 'none', label: t('opt_none') },
         ]),
         slider('menuFontSize', 12, 40, 1, 'px', EDITOR_DEFAULTS.menuFontSize),
+        ...(data.menuIcons !== 'none'
+          ? [
+              // the default follows the font size; "reset" clears the value so it keeps following
+              slider('menuIconSize', 16, 64, 1, 'px', autoIconSize(data.menuFontSize), { resetToEmpty: true }),
+              slider('menuIconGap', 0, 40, 1, 'px', autoIconGap(data.menuFontSize), { resetToEmpty: true }),
+            ]
+          : []),
         slider('menuItemSpacing', 0, 24, 1, 'px', EDITOR_DEFAULTS.menuItemSpacing),
         { name: 'template', selector: { template: {} }, __helper: t('helper_template') },
       ],
@@ -2031,7 +2057,7 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           ],
         },
         { name: 'showRight', selector: { boolean: {} } },
-        { name: 'hideOnPath', selector: { text: { multiple: true } }, __helper: t('helper_hideOnPath') },
+        { type: 'sidebar_paths', name: 'hideOnPath', placeholder: t('placeholder_path') },
       ],
     },
     {
@@ -2081,9 +2107,12 @@ const listStyles = css`
   :host {
     display: block;
   }
+  /* a subheading above the list */
   .label {
     margin-bottom: 8px;
     color: var(--primary-text-color, #212121);
+    font-size: var(--ha-font-size-m, 14px);
+    font-weight: var(--ha-font-weight-medium, 500);
   }
   .items {
     display: flex;
@@ -2506,6 +2535,107 @@ class SidebarViewsField extends LitElement {
 
 if (!customElements.get('ha-form-sidebar_views')) customElements.define('ha-form-sidebar_views', SidebarViewsField);
 
+// Paths for ha-form ("type: sidebar_paths") under a subheading: one field per path, a delete button each, plus to add
+class SidebarPathsField extends LitElement {
+  hass: any;
+  schema: any;
+  data: any;
+  label = '';
+  _selector = { text: {} };
+
+  static get properties() {
+    return {
+      hass: { attribute: false },
+      schema: { attribute: false },
+      data: { attribute: false },
+      label: { attribute: false },
+    };
+  }
+
+  get _paths(): string[] {
+    return Array.isArray(this.data) ? this.data : [];
+  }
+
+  render() {
+    const t = (key: string) => localize(key, this.hass);
+    return html`
+      ${this.label
+        ? html`
+            <div class="label">${this.label}</div>
+          `
+        : ''}
+      <div class="paths">
+        ${this._paths.map(
+          (path, index) => html`
+            <div class="path-row">
+              <ha-selector
+                class="path"
+                .hass=${this.hass}
+                .selector=${this._selector}
+                .value=${path}
+                .placeholder=${this.schema && this.schema.placeholder}
+                @value-changed=${(ev) => this._changed(ev, index)}
+              ></ha-selector>
+              <button class="icon" title="${t('remove_element')}" @click=${() => this._remove(index)}>
+                <ha-icon icon="mdi:delete"></ha-icon>
+              </button>
+            </div>
+          `,
+        )}
+      </div>
+      <button class="add-button" @click=${() => this._fire([...this._paths, ''])}>
+        <ha-icon icon="mdi:plus"></ha-icon>
+        <span>${t('add_element')}</span>
+      </button>
+    `;
+  }
+
+  _fire(value: string[]) {
+    this.dispatchEvent(new CustomEvent('value-changed', { detail: { value }, bubbles: true }));
+  }
+
+  _changed(ev: any, index: number) {
+    ev.stopPropagation();
+    const paths = [...this._paths];
+    paths[index] = ev.detail.value || '';
+    this._fire(paths);
+  }
+
+  _remove(index: number) {
+    const paths = [...this._paths];
+    paths.splice(index, 1);
+    this._fire(paths);
+  }
+
+  static get styles() {
+    return [
+      listStyles,
+      css`
+        .paths {
+          display: flex;
+          flex-direction: column;
+          gap: 8px;
+        }
+        .path-row {
+          display: flex;
+          align-items: center;
+          gap: 4px;
+        }
+        .path {
+          display: block;
+          flex: 1 1 auto;
+          min-width: 0;
+        }
+        .paths:empty + .add-button {
+          margin-top: 0;
+        }
+      `,
+    ];
+  }
+}
+
+if (!customElements.get('ha-form-sidebar_paths')) customElements.define('ha-form-sidebar_paths', SidebarPathsField);
+
 // A slider field for ha-form ("type: sidebar_slider") with a button on the right that puts the default back.
 // ha-form renders unknown field types as <ha-form-TYPE> and passes schema, data, label, helper and hass.
 class SidebarSliderField extends LitElement {
@@ -2517,6 +2647,8 @@ class SidebarSliderField extends LitElement {
   disabled = false;
   _selectorFor: any = null;
   _selector: any = null;
+  _slider: any = null;
+  _lastLive: any = undefined;
 
   static get properties() {
     return {
@@ -2547,7 +2679,7 @@ class SidebarSliderField extends LitElement {
             <div class="label">${this.label}</div>
           `
         : ''}
-      <div class="row">
+      <div class="row" @input=${(ev) => this._onInput(ev)}>
         <ha-selector
           class="slider"
           .hass=${this.hass}
@@ -2557,7 +2689,12 @@ class SidebarSliderField extends LitElement {
           .required=${false}
           @value-changed=${(ev) => this._changed(ev)}
         ></ha-selector>
-        <button class="reset" title="${localize('reset_default', this.hass)}" ?disabled=${this.disabled || value === s.default} @click=${() => this._fire(s.default)}>
+        <button
+          class="reset"
+          title="${localize('reset_default', this.hass)}"
+          ?disabled=${this.disabled || value === s.default}
+          @click=${() => this._fire(s.resetToEmpty ? undefined : s.default)}
+        >
           <ha-icon icon="mdi:restore"></ha-icon>
         </button>
       </div>
@@ -2571,7 +2708,43 @@ class SidebarSliderField extends LitElement {
 
   _changed(ev: any) {
     ev.stopPropagation();
+    this._lastLive = undefined;
     this._fire(ev.detail.value);
+  }
+
+  // HA's slider reports its value only when it is let go; its input events come while it is dragged
+  _onInput(ev: any) {
+    const source: any = ev.composedPath().find((el: any) => el && el.tagName && ['HA-SLIDER', 'WA-SLIDER', 'INPUT'].includes(el.tagName));
+    if (source) this._live(source.value);
+  }
+
+  _live(raw: any) {
+    const value = Number(raw);
+    if (raw === '' || raw === null || raw === undefined || isNaN(value) || value === this._lastLive) return;
+    this._lastLive = value;
+    this._fire(value);
+  }
+
+  updated() {
+    this._hookSlider(0);
+  }
+
+  // in case the slider's input events do not leave its shadow root, listen on the slider itself
+  _hookSlider(attempt: number) {
+    const selector: any = this.shadowRoot && (this.shadowRoot as any).querySelector('ha-selector');
+    const number: any = selector && selector.shadowRoot && selector.shadowRoot.querySelector('ha-selector-number');
+    const slider: any = number && number.shadowRoot && number.shadowRoot.querySelector('ha-slider');
+    if (slider) {
+      if (slider !== this._slider) {
+        this._slider = slider;
+        slider.addEventListener('input', (ev) => {
+          ev.stopPropagation();
+          this._live(slider.value);
+        });
+      }
+    } else if (selector && attempt < 30) {
+      requestAnimationFrame(() => this._hookSlider(attempt + 1));
+    }
   }
 
   _fire(value: any) {
@@ -2675,6 +2848,8 @@ class SidebarCardEditor extends LitElement {
     const key = JSON.stringify([
       this.hass && this.hass.language,
       d.viewMenu,
+      d.menuIcons,
+      d.menuFontSize,
       d.bottomButtonsLayout,
       d.widthUnit,
       d.glass,
@@ -2764,8 +2939,18 @@ class SidebarCardEditor extends LitElement {
   }
 
   _close(saved: boolean) {
-    this.remove();
-    if (this.onClose) this.onClose(saved);
+    if (this.hasAttribute('closing')) return;
+    // slides out to the edge of the screen first
+    this.setAttribute('closing', '');
+    let done = false;
+    const finish = () => {
+      if (done) return;
+      done = true;
+      this.remove();
+      if (this.onClose) this.onClose(saved);
+    };
+    this.addEventListener('animationend', finish, { once: true });
+    setTimeout(finish, 400);
   }
 
   static get styles() {
@@ -2780,10 +2965,44 @@ class SidebarCardEditor extends LitElement {
         width: min(460px, 100vw);
         font-family: var(--ha-font-family-body, Roboto, Noto, sans-serif);
         color: var(--primary-text-color, #212121);
+        animation: slide-in-right 0.22s cubic-bezier(0.2, 0, 0, 1);
       }
       :host([side='left']) {
         right: auto;
         left: 0;
+        animation-name: slide-in-left;
+      }
+      :host([closing]) {
+        animation: slide-out-right 0.18s cubic-bezier(0.4, 0, 1, 1) forwards;
+      }
+      :host([side='left'][closing]) {
+        animation-name: slide-out-left;
+      }
+      @keyframes slide-in-right {
+        from {
+          transform: translateX(100%);
+        }
+      }
+      @keyframes slide-in-left {
+        from {
+          transform: translateX(-100%);
+        }
+      }
+      @keyframes slide-out-right {
+        to {
+          transform: translateX(100%);
+        }
+      }
+      @keyframes slide-out-left {
+        to {
+          transform: translateX(-100%);
+        }
+      }
+      @media (prefers-reduced-motion: reduce) {
+        :host,
+        :host([closing]) {
+          animation: none;
+        }
       }
       .panel {
         display: flex;
@@ -2816,10 +3035,12 @@ class SidebarCardEditor extends LitElement {
         line-height: 1.2;
         color: var(--primary-text-color, #212121);
       }
+      /* room for the scrollbar from the start, so nothing jumps sideways when it appears */
       .content {
         flex: 1 1 auto;
         overflow-y: auto;
-        padding: 16px 20px;
+        scrollbar-gutter: stable;
+        padding: 16px 12px 16px 20px;
       }
       ha-form {
         display: block;

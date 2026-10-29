@@ -77,6 +77,8 @@ Under `sidebar:` you can configure the following options:
 | `menuIcons` | string | optional | `left` | `left`, `right` or `none`: where menu icons are shown |
 | `menuFontSize` | number | optional | `18` | Font size of the menu in px (up to 40); the spacing of the items grows with it |
 | `menuPosition` | string | optional | `top` | `top` (right below the clocks), `center` or `bottom` of the free space |
+| `menuIconSize` | number | optional | grows with `menuFontSize` | Size of the menu icons in px |
+| `menuIconGap` | number | optional | grows with `menuFontSize` | Space between menu icon and text in px |
 | `menuItemSpacing` | number | optional | `4` | Space between menu items in px |
 | `bottomButtons` | list | optional | *see info below* | Entities and buttons pinned to the bottom of the sidebar |
 | `bottomButtonsLayout` | string | optional | `row` | `row` (icon bar) or `list` (icon, name and state) |
