@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.12.1';
+const SIDEBAR_CARD_VERSION = '0.12.2';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -820,7 +820,7 @@ class SidebarCard extends LitElement {
                       `
                     : ''}
                 </span>
-                <span class="bar-name">${item.name}</span>
+                <span class="bar-name"><span class="text">${item.name}</span></span>
               </button>
             `,
           )}
@@ -829,7 +829,7 @@ class SidebarCard extends LitElement {
                 <ha-dropdown placement="top-end" @wa-select=${(ev) => this._moreSelect(ev, overflow, buttons)}>
                   <button slot="trigger" class="bar-item${overflow.some((item) => this._isActive(item)) ? ' active' : ''}">
                     <span class="bar-icon"><ha-icon icon="mdi:dots-horizontal"></ha-icon></span>
-                    <span class="bar-name">${localize('more', this.hass)}</span>
+                    <span class="bar-name"><span class="text">${localize('more', this.hass)}</span></span>
                   </button>
                   ${overflow.map(
                     (item, index) => html`
@@ -938,7 +938,7 @@ class SidebarCard extends LitElement {
               <ha-icon .icon=${item.icon}></ha-icon>
             `
           : ''}
-        <span>${item.name}</span>
+        <span class="label"><span class="text">${item.name}</span></span>
       </li>
     `;
   }
@@ -1757,7 +1757,7 @@ class SidebarCard extends LitElement {
       .sidebarMenu.icons-right li {
         flex-direction: row-reverse;
       }
-      .sidebarMenu li span {
+      .sidebarMenu li .label {
         flex: 1 1 auto;
         min-width: 0;
         padding-block: 0.1em;
@@ -1785,9 +1785,20 @@ class SidebarCard extends LitElement {
       .sidebarMenu li:hover::before {
         opacity: 0.06;
       }
-      /* no bolder font when active: the other weight sits a fraction of a pixel higher or lower, so items jumped */
       .sidebarMenu li.active {
         color: var(--sidebar-selected-text-color, var(--sb-text));
+      }
+      /*
+       * Bold only for the text itself, with no line height of its own: the line (and so the baseline) stays the one
+       * of the regular font, which may sit a pixel higher or lower than the medium one. Otherwise the item jumped.
+       */
+      .sidebarMenu li .text,
+      .bar-name .text {
+        line-height: 0;
+      }
+      .sidebarMenu li.active .text,
+      .bar-item.active .bar-name .text {
+        font-weight: 500;
       }
       .sidebarMenu li.active ha-icon {
         color: var(--sb-accent);
