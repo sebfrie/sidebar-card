@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.11.0';
+const SIDEBAR_CARD_VERSION = '0.12.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -75,11 +75,16 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_bottomButtonsShowName: 'Show names',
     label_bottomButtonsAlign: 'Alignment',
     opt_align_stretch: 'Full width',
+    opt_align_grid: 'Grid',
+    label_bottomButtonsColumns: 'Icons per row',
+    label_elementsAlign: 'Alignment',
+    label_topOffset: 'Space at the top',
+    more: 'More',
+    helper_breakpoint_mobile: 'Up to this width the sidebar is a bar at the bottom of the screen.',
     label_bottomCard: 'Card (YAML)',
     label_widthUnit: 'Unit',
     label_width_desktop: 'Desktop',
     label_width_tablet: 'Tablet',
-    label_width_mobile: 'Mobile',
     label_breakpoint_tablet: 'Tablet up to',
     label_breakpoint_mobile: 'Mobile up to',
     label_showRight: 'Show on the right',
@@ -202,11 +207,16 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_bottomButtonsShowName: 'Namen anzeigen',
     label_bottomButtonsAlign: 'Ausrichtung',
     opt_align_stretch: 'Volle Breite',
+    opt_align_grid: 'Raster',
+    label_bottomButtonsColumns: 'Icons pro Zeile',
+    label_elementsAlign: 'Ausrichtung',
+    label_topOffset: 'Abstand nach oben',
+    more: 'Mehr',
+    helper_breakpoint_mobile: 'Bis zu dieser Breite ist die Seitenleiste eine Leiste am unteren Bildschirmrand.',
     label_bottomCard: 'Karte (YAML)',
     label_widthUnit: 'Einheit',
     label_width_desktop: 'Desktop',
     label_width_tablet: 'Tablet',
-    label_width_mobile: 'Mobil',
     label_breakpoint_tablet: 'Tablet bis',
     label_breakpoint_mobile: 'Mobil bis',
     label_showRight: 'Rechts anzeigen',
@@ -461,6 +471,12 @@ const MDI_PENCIL =
   'M20.71,7.04C21.1,6.65 21.1,6 20.71,5.63L18.37,3.29C18,2.9 17.35,2.9 16.96,3.29L15.12,5.12L18.87,8.87M3,17.25V21H6.75L17.81,9.93L14.06,6.18L3,17.25Z';
 const MDI_DELETE = 'M19,4H15.5L14.5,3H9.5L8.5,4H5V6H19M6,19A2,2 0 0,0 8,21H16A2,2 0 0,0 18,19V7H6V19Z';
 
+// phone mode: a bar at the bottom of the screen
+const BAR_HEIGHT = 64;
+const BAR_ITEM_MIN_WIDTH = 64;
+const BOTTOM_BUTTON_COLUMNS = 4;
+const TOP_OFFSET = 20;
+
 const GLASS_BLUR = 12;
 const SHADOW_SIZE = 12;
 const MENU_ITEM_SPACING = 4;
@@ -507,10 +523,16 @@ function cssColor(color: any) {
 }
 
 // falls towards the dashboard
-function shadowCss(config: any) {
+function shadowCss(config: any, bar = false) {
   const size = Number(config.shadowSize) || SHADOW_SIZE;
-  const offset = Math.round(size / 3) * (config.showRight ? -1 : 1);
-  return `${offset}px 0 ${size}px rgba(0, 0, 0, 0.3)`;
+  const offset = Math.round(size / 3) * (config.showRight || bar ? -1 : 1);
+  // the bar at the bottom casts it upwards
+  return bar ? `0 ${offset}px ${size}px rgba(0, 0, 0, 0.3)` : `${offset}px 0 ${size}px rgba(0, 0, 0, 0.3)`;
+}
+
+// phones get the bar at the bottom instead of the sidebar
+function isPhone(config: any) {
+  return document.body.clientWidth <= withDefaults(config || {}).breakpoints.mobile;
 }
 
 // glass: semi-transparent and blurring; older configs only had blur
@@ -554,6 +576,8 @@ class SidebarCard extends LitElement {
   _editor: any = null;
   _hover = false;
   _touchStarted = false;
+  _phone = false;
+  _barBox = '';
   _warnedTemplates = new Set<string>();
   _resizeObserver: any = null;
   _boundLocationChange: any;
@@ -642,10 +666,13 @@ class SidebarCard extends LitElement {
 
   render() {
     const c = this.config || {};
+    this._phone = isPhone(c);
+    if (this._phone) return this._renderBar(c);
     const items = this._menuItems();
     const buttons = Array.isArray(c.bottomButtons) ? c.bottomButtons.filter((b) => b && typeof b === 'object') : [];
     const layout = c.bottomButtonsLayout === 'list' ? 'list' : 'row';
-    const align = ['center', 'right', 'stretch'].includes(c.bottomButtonsAlign) ? c.bottomButtonsAlign : 'left';
+    const align = ['center', 'right', 'stretch', 'grid'].includes(c.bottomButtonsAlign) ? c.bottomButtonsAlign : 'left';
+    const columns = Math.max(1, Math.round(Number(c.bottomButtonsColumns)) || BOTTOM_BUTTON_COLUMNS);
     const iconPosition = ['left', 'right', 'none'].includes(c.menuIcons) ? c.menuIcons : 'left';
     const showFooter = buttons.length > 0 || !!c.bottomCard;
     const editMode = this._isEditMode();
@@ -667,7 +694,13 @@ class SidebarCard extends LitElement {
         @click=${() => this._pointerClick()}
       >
         <div class="sidebar-main" ?inert=${editMode}>
-          ${elementsOf(c).map((element) => this._renderElement(element))}
+          ${elementsOf(c).length > 0
+            ? html`
+                <div class="elements align-${['center', 'right'].includes(c.elementsAlign) ? c.elementsAlign : 'left'}">
+                  ${elementsOf(c).map((element) => this._renderElement(element))}
+                </div>
+              `
+            : ''}
           ${c.title
             ? html`
                 <h1 class="title">${c.title}</h1>
@@ -695,7 +728,7 @@ class SidebarCard extends LitElement {
               <div class="sidebar-footer" ?inert=${editMode}>
                 ${buttons.length > 0
                   ? html`
-                      <div class="buttons ${layout}${layout === 'row' ? ' align-' + align : ''}">
+                      <div class="buttons ${layout}${layout === 'row' ? ' align-' + align : ''}" style="${align === 'grid' ? `--sb-columns: ${columns}` : ''}">
                         ${buttons.map((button) => this._renderButton(button, layout, c.bottomButtonsShowName === true))}
                       </div>
                     `
@@ -714,7 +747,7 @@ class SidebarCard extends LitElement {
   }
 
   // like Home Assistant's cards in edit mode: a pencil over the sidebar on hover, a menu in the flag
-  _renderEditControls(c: any) {
+  _renderEditControls(c: any, bar = false) {
     const editText = haText(this.hass, 'ui.panel.lovelace.editor.edit_card.edit', 'edit');
     const deleteText = haText(this.hass, 'ui.panel.lovelace.editor.edit_card.delete', 'delete');
     return html`
@@ -731,7 +764,7 @@ class SidebarCard extends LitElement {
           <ha-icon icon="mdi:pencil"></ha-icon>
         </div>
       </div>
-      <ha-dropdown class="edit-menu" placement="${c.showRight ? 'bottom-end' : 'bottom-start'}" @wa-select=${(ev) => this._menuSelect(ev)}>
+      <ha-dropdown class="edit-menu" placement="${bar ? 'top-end' : c.showRight ? 'bottom-end' : 'bottom-start'}" @wa-select=${(ev) => this._menuSelect(ev)}>
         <button slot="trigger" class="edit-sidebar" aria-label="${localize('edit_sidebar', this.hass)}">
           <ha-icon icon="mdi:dots-vertical"></ha-icon>
         </button>
@@ -746,6 +779,118 @@ class SidebarCard extends LitElement {
         </ha-dropdown-item>
       </ha-dropdown>
     `;
+  }
+
+  // phones: the menu as a bar at the bottom; what does not fit, and the footer buttons, go into "More"
+  _renderBar(c: any) {
+    const items = this._menuItems();
+    const buttons = Array.isArray(c.bottomButtons) ? c.bottomButtons.filter((b) => b && typeof b === 'object') : [];
+    const editMode = this._isEditMode();
+    const box = this._barRect();
+    const slots = Math.max(1, Math.floor(box.width / BAR_ITEM_MIN_WIDTH));
+    const needMore = buttons.length > 0 || items.length > slots;
+    const shown = needMore ? items.slice(0, Math.max(0, slots - 1)) : items;
+    const overflow = items.slice(shown.length);
+
+    return html`
+      ${c.style
+        ? html`
+            <style>
+              ${c.style}
+            </style>
+          `
+        : ''}
+      <div
+        class="bottom-bar${isGlass(c) ? ' glass' : ''}${c.dividers === false ? ' no-dividers' : ''}${c.shadow ? ' shadow' : ''}${editMode ? ' editing' : ''}${this._editor ? ' editor-open' : ''}"
+        style="left: ${box.left}px; width: ${box.width}px;"
+        @mouseenter=${() => this._pointerEnter()}
+        @mouseleave=${() => (this._hover = false)}
+        @touchstart=${() => this._touchStart()}
+        @touchend=${() => setTimeout(() => (this._touchStarted = false), 10)}
+        @click=${() => this._pointerClick()}
+      >
+        <nav class="bar-items" ?inert=${editMode}>
+          ${shown.map(
+            (item) => html`
+              <button class="bar-item${this._isActive(item) ? ' active' : ''}" title="${item.name}" @click=${() => this._menuAction(item)}>
+                <span class="bar-icon">
+                  ${item.icon
+                    ? html`
+                        <ha-icon .icon=${item.icon}></ha-icon>
+                      `
+                    : ''}
+                </span>
+                <span class="bar-name">${item.name}</span>
+              </button>
+            `,
+          )}
+          ${needMore
+            ? html`
+                <ha-dropdown placement="top-end" @wa-select=${(ev) => this._moreSelect(ev, overflow, buttons)}>
+                  <button slot="trigger" class="bar-item${overflow.some((item) => this._isActive(item)) ? ' active' : ''}">
+                    <span class="bar-icon"><ha-icon icon="mdi:dots-horizontal"></ha-icon></span>
+                    <span class="bar-name">${localize('more', this.hass)}</span>
+                  </button>
+                  ${overflow.map(
+                    (item, index) => html`
+                      <ha-dropdown-item value="menu:${index}" ?selected=${this._isActive(item)}>
+                        ${item.icon
+                          ? html`
+                              <ha-icon slot="icon" .icon=${item.icon}></ha-icon>
+                            `
+                          : ''}
+                        ${item.name}
+                      </ha-dropdown-item>
+                    `,
+                  )}
+                  ${overflow.length > 0 && buttons.length > 0
+                    ? html`
+                        <wa-divider></wa-divider>
+                      `
+                    : ''}
+                  ${buttons.map((button, index) => this._renderButtonMenuItem(button, index))}
+                </ha-dropdown>
+              `
+            : ''}
+        </nav>
+        ${editMode ? this._renderEditControls(c, true) : ''}
+      </div>
+    `;
+  }
+
+  _renderButtonMenuItem(button: any, index: number) {
+    const stateObj = button.entity && this.hass ? this.hass.states[button.entity] : undefined;
+    const name = button.name || (stateObj ? stateObj.attributes.friendly_name || button.entity : button.entity || '');
+    return html`
+      <ha-dropdown-item value="button:${index}">
+        ${stateObj && customElements.get('ha-state-icon')
+          ? html`
+              <ha-state-icon slot="icon" .hass=${this.hass} .stateObj=${stateObj} .icon=${button.icon}></ha-state-icon>
+            `
+          : html`
+              <ha-icon slot="icon" .icon=${button.icon || (stateObj && stateObj.attributes.icon) || 'mdi:gesture-tap-button'}></ha-icon>
+            `}
+        ${name}
+        ${stateObj
+          ? html`
+              <span slot="details">${formatState(this.hass, stateObj)}</span>
+            `
+          : ''}
+      </ha-dropdown-item>
+    `;
+  }
+
+  _moreSelect(ev: any, overflow: any[], buttons: any[]) {
+    const [kind, index] = String((ev.detail && ev.detail.item && ev.detail.item.value) || '').split(':');
+    if (kind === 'menu' && overflow[Number(index)]) this._menuAction(overflow[Number(index)]);
+    else if (kind === 'button' && buttons[Number(index)]) this._buttonAction(buttons[Number(index)], 'tap');
+  }
+
+  // the bar spans the dashboard's content, not the HA sidebar next to it
+  _barRect() {
+    const wrapper = this.parentElement && this.parentElement.parentElement;
+    const rect = wrapper ? wrapper.getBoundingClientRect() : null;
+    return rect && rect.width > 0 ? { left: Math.round(rect.left), width: Math.round(rect.width) } : { left: 0, width: document.body.clientWidth };
   }
 
   // the same hover and touch handling as Home Assistant's hui-card-edit-mode
@@ -886,7 +1031,7 @@ class SidebarCard extends LitElement {
    * **************************************** */
 
   _tick() {
-    if (elementsOf(this.config || {}).length > 0) {
+    if (elementsOf(this.config || {}).length > 0 && !this._phone) {
       this._now = new Date();
     }
   }
@@ -1165,9 +1310,8 @@ class SidebarCard extends LitElement {
       return;
     }
 
-    // the card's own config, as in the card editor; cardOptions is how earlier versions nested it
-    const { cardStyle, cardOptions, ...card } = bottomCard;
-    Object.assign(card, cardOptions);
+    // the card's own config, as in the card editor
+    const { cardStyle, ...card } = bottomCard;
     log2console('bottomCard', 'Bottom card: ', card);
     if (!card.type) {
       error2console('bottomCard', 'Bottom card config error!');
@@ -1232,6 +1376,8 @@ class SidebarCard extends LitElement {
       '--sidebar-divider-color': cssColor(c.dividerColor),
       '--sidebar-menu-gap': c.menuItemSpacing !== undefined && c.menuItemSpacing !== null && c.menuItemSpacing !== '' ? `${c.menuItemSpacing}px` : undefined,
       '--sidebar-shadow': c.shadow ? shadowCss(c) : undefined,
+      '--sidebar-bar-shadow': c.shadow ? shadowCss(c, true) : undefined,
+      '--sidebar-top-offset': c.topOffset !== undefined && c.topOffset !== null && c.topOffset !== '' ? `${c.topOffset}px` : undefined,
       '--sidebar-blur': isGlass(c) ? `${c.blur || GLASS_BLUR}px` : undefined,
       '--sidebar-menu-font-size': c.menuFontSize ? `${c.menuFontSize}px` : undefined,
       '--sidebar-menu-icon-size': c.menuIconSize ? `${c.menuIconSize}px` : undefined,
@@ -1249,6 +1395,12 @@ class SidebarCard extends LitElement {
   }
 
   updateSidebarSize() {
+    const phone = isPhone(this.config);
+    const box = phone ? JSON.stringify(this._barRect()) : '';
+    if (phone !== this._phone || box !== this._barBox) {
+      this._barBox = box;
+      this.requestUpdate();
+    }
     const sidebarInner = this.shadowRoot && this.shadowRoot.querySelector('.sidebar-inner');
     const headerHeightPx = getHeaderHeightPx();
 
@@ -1321,7 +1473,8 @@ class SidebarCard extends LitElement {
         background: var(--sidebar-background, var(--ha-card-background, var(--card-background-color, #fff)));
       }
       /* semi-transparent, blurring the dashboard background that shows through */
-      .sidebar-inner.glass {
+      .sidebar-inner.glass,
+      .bottom-bar.glass {
         background: var(
           --sidebar-background,
           color-mix(in srgb, var(--ha-card-background, var(--card-background-color, #fff)) 55%, transparent)
@@ -1345,6 +1498,7 @@ class SidebarCard extends LitElement {
         min-height: 0;
         overflow: hidden auto;
         padding: var(--sb-padding);
+        padding-top: var(--sidebar-top-offset, var(--sb-padding));
         scrollbar-width: thin;
         container-type: inline-size;
       }
@@ -1472,6 +1626,103 @@ class SidebarCard extends LitElement {
         line-height: 1.2;
         font-weight: 300;
       }
+      /* elementsAlign: clocks and dates together */
+      .elements.align-center {
+        text-align: center;
+      }
+      .elements.align-right {
+        text-align: right;
+      }
+      .elements.align-left .clock {
+        margin-left: 0;
+      }
+      .elements.align-right .clock {
+        margin-right: 0;
+      }
+
+      /* phones: the bar at the bottom */
+      .bottom-bar {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        z-index: 4;
+        display: flex;
+        box-sizing: border-box;
+        height: calc(${BAR_HEIGHT}px + env(safe-area-inset-bottom));
+        padding: 0 4px env(safe-area-inset-bottom);
+        color: var(--sb-text);
+        background: var(--sidebar-background, var(--ha-card-background, var(--card-background-color, #fff)));
+        border-top: 1px solid var(--sb-divider);
+      }
+      .bottom-bar.no-dividers {
+        border-top-color: transparent;
+      }
+      .bottom-bar.shadow {
+        box-shadow: var(--sidebar-bar-shadow);
+      }
+      .bar-items {
+        display: flex;
+        flex: 1 1 auto;
+        min-width: 0;
+      }
+      .bar-item {
+        display: flex;
+        flex: 1 1 0;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        gap: 4px;
+        min-width: 0;
+        margin: 0;
+        padding: 6px 2px;
+        border: none;
+        background: none;
+        color: var(--sb-text);
+        font: inherit;
+        font-size: 12px;
+        line-height: 14px;
+        cursor: pointer;
+        -webkit-tap-highlight-color: transparent;
+        user-select: none;
+      }
+      .bar-icon {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        width: 56px;
+        max-width: 100%;
+        height: 32px;
+        border-radius: 16px;
+        color: var(--sb-icon);
+        transition: background-color 0.15s;
+        --mdc-icon-size: 24px;
+      }
+      .bar-item:hover .bar-icon {
+        background: color-mix(in srgb, currentColor 8%, transparent);
+      }
+      .bar-item.active {
+        color: var(--sidebar-selected-text-color, var(--sb-text));
+        font-weight: 500;
+      }
+      .bar-item.active .bar-icon {
+        color: var(--sb-accent);
+        background: color-mix(in srgb, var(--sb-accent) 14%, transparent);
+      }
+      .bar-name {
+        max-width: 100%;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+      .bottom-bar .edit-sidebar {
+        top: auto;
+        left: auto;
+        right: 16px;
+        bottom: 100%;
+        width: 44px;
+        height: 36px;
+        border-radius: var(--ha-border-radius-xl, 16px) var(--ha-border-radius-xl, 16px) 0 0;
+      }
 
       /* menu */
       .sidebarMenu {
@@ -1575,6 +1826,14 @@ class SidebarCard extends LitElement {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(52px, 1fr));
       }
+      /* bottomButtonsColumns per row over the whole width */
+      .buttons.row.align-grid {
+        display: grid;
+        grid-template-columns: repeat(var(--sb-columns, ${BOTTOM_BUTTON_COLUMNS}), minmax(0, 1fr));
+      }
+      .buttons.row.align-grid .sb-button {
+        min-width: 0;
+      }
       .buttons.list {
         display: flex;
         flex-direction: column;
@@ -1604,7 +1863,7 @@ class SidebarCard extends LitElement {
         min-width: 52px;
         min-height: 52px;
       }
-      .buttons.row:not(.align-stretch) .sb-button {
+      .buttons.row:not(.align-stretch):not(.align-grid) .sb-button {
         flex: 0 0 auto;
         max-width: 96px;
       }
@@ -1757,6 +2016,9 @@ const EDITOR_DEFAULTS: Record<string, any> = {
   menuPosition: 'top',
   bottomButtonsLayout: 'row',
   bottomButtonsAlign: 'left',
+  bottomButtonsColumns: BOTTOM_BUTTON_COLUMNS,
+  elementsAlign: 'left',
+  topOffset: TOP_OFFSET,
   widthUnit: '%',
   menuFontSize: 18,
   menuItemSpacing: MENU_ITEM_SPACING,
@@ -1771,7 +2033,8 @@ const DEFAULT_WIDTH_PX = 300;
 const OFF_BY_DEFAULT = ['viewMenu', 'bottomButtonsShowName', 'showRight', 'shadow', 'hideTopMenu', 'showTopMenuOnMobile', 'hideHassSidebar', 'dockHassSidebar', 'debug'];
 const COLOR_KEYS = ['background', 'textColor', 'iconColor', 'accentColor', 'dividerColor'];
 const CUSTOM_DATE_FORMAT = 'custom';
-const WIDTH_KEYS = ['desktop', 'tablet', 'mobile'];
+// phones show the bar at the bottom, so there is no width for them
+const WIDTH_KEYS = ['desktop', 'tablet'];
 // older keys the elements list replaces
 const LEGACY_KEYS = [
   'digitalClock',
@@ -1852,7 +2115,7 @@ function toFormData(config: any, hassObj: any) {
       WIDTH_KEYS.forEach((key) => (width[key] = parse(data.width[key])));
     } else {
       const value = parse(data.width);
-      width = { desktop: value, tablet: value, mobile: value };
+      width = { desktop: value, tablet: value };
     }
   }
   unit = unit || '%';
@@ -1869,11 +2132,6 @@ function toFormData(config: any, hassObj: any) {
   data.dividers = source.dividers !== false;
   data.sidebarMenu = Array.isArray(data.sidebarMenu) ? data.sidebarMenu.filter((item) => item && typeof item === 'object') : [];
   data.bottomButtons = Array.isArray(data.bottomButtons) ? data.bottomButtons.filter((item) => item && typeof item === 'object') : [];
-  // shown (and saved) as a normal card config
-  if (data.bottomCard && typeof data.bottomCard === 'object' && data.bottomCard.cardOptions) {
-    const { cardOptions, cardStyle, ...card } = data.bottomCard;
-    data.bottomCard = Object.assign(card, cardOptions, cardStyle !== undefined ? { cardStyle } : {});
-  }
 
   Object.keys(EDITOR_DEFAULTS).forEach((key) => {
     if (isEmpty(data[key])) data[key] = EDITOR_DEFAULTS[key];
@@ -2176,6 +2434,12 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           normalizeItem: normalizeElement,
           emptyText: t('no_elements'),
         },
+        dropdown('elementsAlign', [
+          { value: 'left', label: t('opt_left') },
+          { value: 'center', label: t('opt_pos_center') },
+          { value: 'right', label: t('opt_right') },
+        ]),
+        slider('topOffset', 0, 200, 2, 'px', TOP_OFFSET),
       ],
     },
     {
@@ -2268,7 +2532,9 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
                 { value: 'center', label: t('opt_pos_center') },
                 { value: 'right', label: t('opt_right') },
                 { value: 'stretch', label: t('opt_align_stretch') },
+                { value: 'grid', label: t('opt_align_grid') },
               ]),
+              ...(data.bottomButtonsAlign === 'grid' ? [slider('bottomButtonsColumns', 1, 8, 1, '', BOTTOM_BUTTON_COLUMNS)] : []),
               { name: 'bottomButtonsShowName', selector: { boolean: {} } },
             ]
           : []),
@@ -2292,8 +2558,7 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           column_min_width: '100%',
           schema: [
             width('desktop', { __label: t('label_width_desktop') }),
-            width('tablet', { __label: t('label_width_tablet') }),
-            width('mobile', { __label: t('label_width_mobile'), __helper: t('helper_width') }),
+            width('tablet', { __label: t('label_width_tablet'), __helper: t('helper_width') }),
           ],
         },
         {
@@ -2302,7 +2567,7 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           column_min_width: '100%',
           schema: [
             slider('tablet', 600, 2000, 8, 'px', DEFAULT_BREAKPOINTS.tablet, { __label: t('label_breakpoint_tablet') }),
-            slider('mobile', 320, 1200, 8, 'px', DEFAULT_BREAKPOINTS.mobile, { __label: t('label_breakpoint_mobile') }),
+            slider('mobile', 320, 1200, 8, 'px', DEFAULT_BREAKPOINTS.mobile, { __label: t('label_breakpoint_mobile'), __helper: t('helper_breakpoint_mobile') }),
           ],
         },
         { name: 'showRight', selector: { boolean: {} } },
@@ -3136,6 +3401,7 @@ class SidebarCardEditor extends LitElement {
       d.menuPosition,
       d.dividers,
       d.bottomButtonsLayout,
+      d.bottomButtonsAlign,
       d.widthUnit,
       d.glass,
       d.shadow,
@@ -3200,7 +3466,7 @@ class SidebarCardEditor extends LitElement {
     const previous = this._data;
     const data = Object.assign({}, ev.detail.value);
     // dropdowns never end up empty
-    ['menuIcons', 'menuPosition', 'bottomButtonsLayout', 'bottomButtonsAlign', 'widthUnit'].forEach((key) => {
+    ['menuIcons', 'menuPosition', 'bottomButtonsLayout', 'bottomButtonsAlign', 'elementsAlign', 'widthUnit'].forEach((key) => {
       if (isEmpty(data[key])) data[key] = previous[key] || EDITOR_DEFAULTS[key];
     });
     if (data.widthUnit !== previous.widthUnit && data.width) {
@@ -3445,9 +3711,7 @@ function resolveWidth(sidebarConfig: any, screenWidth: number) {
   if (typeof sidebarConfig.width == 'number' || typeof sidebarConfig.width == 'string') {
     width = sidebarConfig.width;
   } else if (sidebarConfig.width && typeof sidebarConfig.width == 'object') {
-    if (screenWidth <= sidebarConfig.breakpoints.mobile) {
-      width = sidebarConfig.width.mobile;
-    } else if (screenWidth <= sidebarConfig.breakpoints.tablet) {
+    if (screenWidth <= sidebarConfig.breakpoints.tablet) {
       width = sidebarConfig.width.tablet;
     } else {
       width = sidebarConfig.width.desktop;
@@ -3462,6 +3726,32 @@ function resolveWidth(sidebarConfig: any, screenWidth: number) {
 
 function createCSS(sidebarConfig: any, screenWidth: number, editMode = false) {
   const hideTopMenu = isTopMenuHidden(sidebarConfig, screenWidth, editMode);
+  // phones: no column next to the view, the bar is fixed at the bottom and the view keeps room for it
+  if (screenWidth <= sidebarConfig.breakpoints.mobile) {
+    return `
+    #customSidebarWrapper {
+      display:flex;
+      flex-direction:row;
+    }
+    #customSidebar {
+      flex:0 0 0;
+      width:0;
+      min-width:0;
+    }
+    #customSidebar.hide {
+      display:none!important;
+    }
+    #view {
+      flex:1 1 0;
+      min-width:0;
+      width:auto;
+      ${hideTopMenu ? 'padding-top:0!important;margin-top:0!important;' : ''}
+    }
+    #view:not(.hideSidebar) {
+      padding-bottom: calc(${BAR_HEIGHT}px + env(safe-area-inset-bottom))!important;
+    }
+  `;
+  }
   const headerHeightPx = getHeaderHeightPx();
   const sidebarWidth = resolveWidth(sidebarConfig, screenWidth);
   const hidden = parseFloat(sidebarWidth) === 0;

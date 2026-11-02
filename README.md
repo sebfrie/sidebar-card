@@ -129,6 +129,9 @@ Colors are theme color names as Home Assistant's color picker stores them (`red`
 
 `timeZone` is empty for the time zone of Home Assistant (default), `local` for this device's or any IANA name such as `America/New_York`.
 
+`elementsAlign` places all clocks and dates `left` (default), `center` or `right`; `topOffset` is the space above
+them in px (default `20`).
+
 ```yaml
 sidebar:
   elements:
@@ -137,22 +140,21 @@ sidebar:
       seconds: false
     - type: date
       format: dd, D.M.
+  elementsAlign: center
+  topOffset: 40
 ```
 
 #### Width
 
 The width of the sidebar can be manually specified. By default it will be `25%` of the width on all screens.
-With the `width` option you can set the width for 3 sizes: `mobile`, `tablet` and `desktop`.
-You can also set the width to `0` to make the sidebar not appear.
+With the `width` option you can set the width for `tablet` and `desktop`; `0` hides the sidebar on that size.
+Phones get a bar at the bottom instead (see below), so a `mobile` width is not used.
 
 The numbers are percent unless `widthUnit: px` is set; a string such as `280px` or `22vw` is used as it is.
-
-Example to set width (This example hides the sidebar on mobile):
 
 ```yaml
 sidebar:
   width:
-    mobile: 0
     tablet: 25
     desktop: 20
 ```
@@ -171,6 +173,12 @@ sidebar:
     mobile: 768
     tablet: 1024
 ```
+
+#### Phones
+
+Up to the `mobile` breakpoint the sidebar is a menu bar at the bottom of the screen. It shows the menu items with icon
+and name, as many as fit; the rest, and the bottom buttons, are in its "More" menu. Clocks, dates, the template and the
+bottom card are not shown there. Background, glass, shadow and divider settings apply to the bar as well.
 
 #### sidebarMenu
 
@@ -302,14 +310,15 @@ sidebar:
 
 `bottomButtonsLayout` is `row` (icon bar, default) or `list`. In the icon bar, `bottomButtonsAlign` places the buttons
 `left` (default), `center` or `right`, or `stretch`es them over the whole width in equal columns; buttons that do not
-fit (in `stretch`: that would get narrower than 52px) continue in a new row. `bottomButtonsShowName` adds the names
+fit (in `stretch`: that would get narrower than 52px) continue in a new row. `grid` puts `bottomButtonsColumns` buttons
+(default `4`) in each row, over the whole width. `bottomButtonsShowName` adds the names
 under the icons.
 
 #### Bottom Custom Card
 
 `bottomCard` shows any Home Assistant card at the very bottom of the sidebar, below the bottom buttons. It takes the
 card's config exactly as the YAML of the card in the card editor, plus an optional `cardStyle` with CSS rules for the
-card, to make it fit your sidebar. (Older configs with the card settings under `cardOptions` still work.)
+card, to make it fit your sidebar.
 
 ```yaml
 sidebar:
