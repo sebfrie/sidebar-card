@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.12.0';
+const SIDEBAR_CARD_VERSION = '0.12.1';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -1685,6 +1685,9 @@ class SidebarCard extends LitElement {
         -webkit-tap-highlight-color: transparent;
         user-select: none;
       }
+      .bar-icon ha-icon {
+        display: flex;
+      }
       .bar-icon {
         display: flex;
         align-items: center;
@@ -1702,7 +1705,6 @@ class SidebarCard extends LitElement {
       }
       .bar-item.active {
         color: var(--sidebar-selected-text-color, var(--sb-text));
-        font-weight: 500;
       }
       .bar-item.active .bar-icon {
         color: var(--sb-accent);
@@ -1763,7 +1765,9 @@ class SidebarCard extends LitElement {
         text-overflow: ellipsis;
         white-space: nowrap;
       }
+      /* display: flex: no line box around the icon, so its position does not depend on the font */
       .sidebarMenu li ha-icon {
+        display: flex;
         flex: none;
         color: var(--sb-icon);
         --mdc-icon-size: var(--sidebar-menu-icon-size, max(24px, 1.3em));
@@ -1781,9 +1785,9 @@ class SidebarCard extends LitElement {
       .sidebarMenu li:hover::before {
         opacity: 0.06;
       }
+      /* no bolder font when active: the other weight sits a fraction of a pixel higher or lower, so items jumped */
       .sidebarMenu li.active {
         color: var(--sidebar-selected-text-color, var(--sb-text));
-        font-weight: 500;
       }
       .sidebarMenu li.active ha-icon {
         color: var(--sb-accent);
