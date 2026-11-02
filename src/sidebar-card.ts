@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.12.2';
+const SIDEBAR_CARD_VERSION = '0.12.3';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -820,7 +820,7 @@ class SidebarCard extends LitElement {
                       `
                     : ''}
                 </span>
-                <span class="bar-name"><span class="text">${item.name}</span></span>
+                <span class="bar-name">${item.name}</span>
               </button>
             `,
           )}
@@ -829,7 +829,7 @@ class SidebarCard extends LitElement {
                 <ha-dropdown placement="top-end" @wa-select=${(ev) => this._moreSelect(ev, overflow, buttons)}>
                   <button slot="trigger" class="bar-item${overflow.some((item) => this._isActive(item)) ? ' active' : ''}">
                     <span class="bar-icon"><ha-icon icon="mdi:dots-horizontal"></ha-icon></span>
-                    <span class="bar-name"><span class="text">${localize('more', this.hass)}</span></span>
+                    <span class="bar-name">${localize('more', this.hass)}</span>
                   </button>
                   ${overflow.map(
                     (item, index) => html`
@@ -938,7 +938,7 @@ class SidebarCard extends LitElement {
               <ha-icon .icon=${item.icon}></ha-icon>
             `
           : ''}
-        <span class="label"><span class="text">${item.name}</span></span>
+        <span class="label">${item.name}</span>
       </li>
     `;
   }
@@ -1681,6 +1681,7 @@ class SidebarCard extends LitElement {
         font: inherit;
         font-size: 12px;
         line-height: 14px;
+        font-weight: 500;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
@@ -1749,7 +1750,8 @@ class SidebarCard extends LitElement {
         color: var(--sb-text);
         font-size: var(--sidebar-menu-font-size, 18px);
         line-height: 1.35;
-        font-weight: 400;
+        /* the same weight for all items, as in HA's sidebar: another weight for the marked one made it jump */
+        font-weight: 500;
         cursor: pointer;
         -webkit-tap-highlight-color: transparent;
         user-select: none;
@@ -1781,24 +1783,13 @@ class SidebarCard extends LitElement {
         opacity: 0;
         pointer-events: none;
         transition: opacity 0.15s;
+        will-change: opacity;
       }
       .sidebarMenu li:hover::before {
         opacity: 0.06;
       }
       .sidebarMenu li.active {
         color: var(--sidebar-selected-text-color, var(--sb-text));
-      }
-      /*
-       * Bold only for the text itself, with no line height of its own: the line (and so the baseline) stays the one
-       * of the regular font, which may sit a pixel higher or lower than the medium one. Otherwise the item jumped.
-       */
-      .sidebarMenu li .text,
-      .bar-name .text {
-        line-height: 0;
-      }
-      .sidebarMenu li.active .text,
-      .bar-item.active .bar-name .text {
-        font-weight: 500;
       }
       .sidebarMenu li.active ha-icon {
         color: var(--sb-accent);
