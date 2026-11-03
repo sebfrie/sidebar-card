@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.12.3';
+const SIDEBAR_CARD_VERSION = '0.13.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -66,7 +66,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_blur: 'Blur strength',
     label_timeFormat: 'Time format',
     label_viewMenu: 'Show the views of this dashboard',
-    label_sidebarMenu: 'Additional menu items',
+    label_menu: 'Menu items',
     label_menuIcons: 'Menu icons',
     label_menuFontSize: 'Menu font size',
     label_template: 'Info text (template)',
@@ -198,7 +198,7 @@ const STRINGS: Record<string, Record<string, string>> = {
     label_blur: 'Stärke der Unschärfe',
     label_timeFormat: 'Zeitformat',
     label_viewMenu: 'Views dieses Dashboards anzeigen',
-    label_sidebarMenu: 'Zusätzliche Menüeinträge',
+    label_menu: 'Menüeinträge',
     label_menuIcons: 'Menü-Icons',
     label_menuFontSize: 'Schriftgröße Menü',
     label_template: 'Info-Text (Template)',
@@ -528,6 +528,11 @@ function shadowCss(config: any, bar = false) {
   const offset = Math.round(size / 3) * (config.showRight || bar ? -1 : 1);
   // the bar at the bottom casts it upwards
   return bar ? `0 ${offset}px ${size}px rgba(0, 0, 0, 0.3)` : `${offset}px 0 ${size}px rgba(0, 0, 0, 0.3)`;
+}
+
+// the view an own menu item stands before ("" when it has none, then it comes after the views)
+function anchorOf(item: any) {
+  return item && item.beforeView !== undefined && item.beforeView !== null ? String(item.beforeView) : '';
 }
 
 // phones get the bar at the bottom instead of the sidebar
@@ -1040,11 +1045,21 @@ class SidebarCard extends LitElement {
    *                   Menu                   *
    * **************************************** */
 
+  // the views in their order, each own item right before the view in its beforeView, the others at the end
   _menuItems() {
     const c = this.config || {};
-    const items: any[] = [];
-    if (c.viewMenu) items.push(...this._viewItems());
-    if (Array.isArray(c.sidebarMenu)) items.push(...c.sidebarMenu.filter((item) => item && typeof item === 'object'));
+    const custom = Array.isArray(c.sidebarMenu) ? c.sidebarMenu.filter((item) => item && typeof item === 'object') : [];
+    let items: any[] = custom;
+    if (c.viewMenu) {
+      const views = this._viewItems();
+      const paths = views.map((view) => view._path);
+      items = [];
+      views.forEach((view) => {
+        items.push(...custom.filter((item) => anchorOf(item) === view._path));
+        if (!view._hidden) items.push(view);
+      });
+      items.push(...custom.filter((item) => !paths.includes(anchorOf(item))));
+    }
     return items.filter((item) => this._evaluateVisibleCondition(item.conditional, this.hass));
   }
 
@@ -1054,7 +1069,7 @@ class SidebarCard extends LitElement {
     return '/' + urlPath;
   }
 
-  // one menu item per view: title and icon come from the view itself
+  // one menu item per view: title and icon come from the view itself; hidden ones still place the items next to them
   _viewItems() {
     const lovelace = this.lovelace;
     const views = lovelace && lovelace.config && Array.isArray(lovelace.config.views) ? lovelace.config.views : [];
@@ -1062,20 +1077,21 @@ class SidebarCard extends LitElement {
     const userId = this.hass && this.hass.user ? this.hass.user.id : undefined;
     const base = this._dashboardPath();
 
+    const hidden = (view: any, path: string) =>
+      exclude.includes(path) ||
+      view.visible === false ||
+      (Array.isArray(view.visible) && !!userId && !view.visible.some((entry) => entry && entry.user === userId));
     return views
       .map((view, index) => ({ view, index, path: view.path !== undefined && view.path !== null && view.path !== '' ? String(view.path) : String(index) }))
-      .filter(({ view, path }) => {
-        if (view.subview || exclude.includes(path)) return false;
-        if (view.visible === false) return false;
-        if (Array.isArray(view.visible) && userId && !view.visible.some((entry) => entry && entry.user === userId)) return false;
-        return true;
-      })
+      .filter(({ view }) => !view.subview)
       .map(({ view, index, path }) => ({
         action: 'navigate',
         navigation_path: `${base}/${path}`,
         name: view.title || view.path || String(index + 1),
         icon: view.icon || 'mdi:view-dashboard-outline',
         _viewIndex: index,
+        _path: path,
+        _hidden: hidden(view, path),
       }));
   }
 
@@ -2136,14 +2152,19 @@ function toFormData(config: any, hassObj: any) {
   LEGACY_KEYS.forEach((key) => delete data[key]);
   data.glass = isGlass(source);
   data.dividers = source.dividers !== false;
-  data.sidebarMenu = Array.isArray(data.sidebarMenu) ? data.sidebarMenu.filter((item) => item && typeof item === 'object') : [];
+  // views and own items are one list in the form: the items, plus the views hidden with the eye
+  data.menu = {
+    items: Array.isArray(data.sidebarMenu) ? data.sidebarMenu.filter((item) => item && typeof item === 'object') : [],
+    exclude: data.viewMenuExclude !== undefined ? ([] as any[]).concat(data.viewMenuExclude).map(String) : [],
+  };
+  delete data.sidebarMenu;
+  delete data.viewMenuExclude;
   data.bottomButtons = Array.isArray(data.bottomButtons) ? data.bottomButtons.filter((item) => item && typeof item === 'object') : [];
 
   Object.keys(EDITOR_DEFAULTS).forEach((key) => {
     if (isEmpty(data[key])) data[key] = EDITOR_DEFAULTS[key];
   });
   if (data.hideOnPath !== undefined && !Array.isArray(data.hideOnPath)) data.hideOnPath = [data.hideOnPath];
-  if (data.viewMenuExclude !== undefined) data.viewMenuExclude = ([] as any[]).concat(data.viewMenuExclude).map(String);
   return data;
 }
 
@@ -2151,7 +2172,11 @@ function fromFormData(formData: any, hassObj: any) {
   const data = Object.assign({}, formData);
   const language = languageOf(hassObj);
   data.elements = (data.elements || []).map((element) => fromElementFormData(element, language));
-  data.sidebarMenu = (data.sidebarMenu || []).map(compactItem).filter((item) => !isEmpty(item));
+  const menu = data.menu || {};
+  delete data.menu;
+  // an entry that only has its place is still empty
+  data.sidebarMenu = (menu.items || []).map(compactItem).filter((item) => Object.keys(item).some((key) => key !== 'beforeView'));
+  data.viewMenuExclude = menu.exclude;
   data.bottomButtons = (data.bottomButtons || []).map(compactItem).filter((item) => !isEmpty(item));
   if (!data.glass) {
     delete data.glass;
@@ -2456,12 +2481,11 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
       icon: 'mdi:menu',
       schema: [
         { name: 'viewMenu', selector: { boolean: {} } },
-        ...(data.viewMenu && views.length > 0
-          ? [{ type: 'sidebar_views', name: 'viewMenuExclude', views, base: '/' + ((lovelace && lovelace.urlPath) || window.location.pathname.split('/')[1]) }]
-          : []),
         {
-          type: 'sidebar_list',
-          name: 'sidebarMenu',
+          type: 'sidebar_menu',
+          name: 'menu',
+          views: data.viewMenu ? views : [],
+          base: '/' + ((lovelace && lovelace.urlPath) || window.location.pathname.split('/')[1]),
           newItem: () => ({ name: '', icon: '', navigation_path: '' }),
           itemIcon: (item: any) => item.icon || 'mdi:link-variant',
           itemName: (item: any) => item.name || t('new_menu_item'),
@@ -2843,7 +2867,8 @@ class SidebarListField extends LitElement {
     `;
   }
 
-  _renderItem(item: any, index: number) {
+  // row: the place among all rows, for dragging (differs from index in lists with other rows)
+  _renderItem(item: any, index: number, row = index) {
     const s = this.schema;
     const t = (key: string) => localize(key, this.hass);
     const expanded = this._expanded === index;
@@ -2853,7 +2878,7 @@ class SidebarListField extends LitElement {
     return html`
       <div class="item${expanded ? ' expanded' : ''}">
         <div class="row">
-          <span class="handle" title="${t('move_element')}" @pointerdown=${(ev) => this._dragStart(ev, index)}>
+          <span class="handle" title="${t('move_element')}" @pointerdown=${(ev) => this._dragStart(ev, row)}>
             <ha-icon icon="mdi:drag-horizontal-variant"></ha-icon>
           </span>
           <span class="item-icon">
@@ -3020,63 +3045,144 @@ function hideScriptHelp(root: any) {
   });
 }
 
-// The views of the dashboard for ha-form ("type: sidebar_views"), each with an eye to show or hide it in the menu.
-// The value is the list of hidden view paths; the views come with the schema, so added or deleted views show up at once.
-class SidebarViewsField extends LitElement {
-  hass: any;
-  schema: any;
-  data: any;
+// The menu for ha-form ("type: sidebar_menu"): the views of the dashboard in their order, each with an eye, and one's
+// own entries in between, which are dragged to their place. Value: { items, exclude }; an item keeps its place as the
+// view it stands before (beforeView), the items after the last view have none.
+class SidebarMenuField extends SidebarListField {
+  get _menu() {
+    const data = this.data && typeof this.data === 'object' ? this.data : {};
+    return { items: Array.isArray(data.items) ? data.items : [], exclude: Array.isArray(data.exclude) ? data.exclude.map(String) : [] };
+  }
 
-  static get properties() {
-    return {
-      hass: { attribute: false },
-      schema: { attribute: false },
-      data: { attribute: false },
-    };
+  get _views(): any[] {
+    return (this.schema && this.schema.views) || [];
+  }
+
+  // the rows as shown: { view } or { index } of an item
+  _entries() {
+    const { items } = this._menu;
+    const views = this._views;
+    if (views.length === 0) return items.map((_item, index) => ({ index }));
+    const entries: any[] = [];
+    const paths = views.map((view) => view.value);
+    views.forEach((view) => {
+      items.forEach((item, index) => anchorOf(item) === view.value && entries.push({ index }));
+      entries.push({ view });
+    });
+    items.forEach((item, index) => !paths.includes(anchorOf(item)) && entries.push({ index }));
+    return entries;
   }
 
   render() {
     const t = (key: string) => localize(key, this.hass);
-    const hidden = Array.isArray(this.data) ? this.data.map(String) : [];
-    const views = (this.schema && this.schema.views) || [];
+    const { items, exclude } = this._menu;
     return html`
+      ${this.label
+        ? html`
+            <div class="label">${this.label}</div>
+          `
+        : ''}
       <div class="items">
-        ${views.map((view) => {
-          const off = hidden.includes(view.value);
-          return html`
-            <div class="item${off ? ' off' : ''}">
-              <div class="row">
-                <span class="item-icon"><ha-icon .icon=${view.icon}></ha-icon></span>
-                <div class="info">
-                  <span class="name">${view.label}</span>
-                  <span class="summary">${this.schema.base}/${view.value}</span>
-                </div>
-                <button class="icon" title="${t(off ? 'show_view' : 'hide_view')}" @click=${() => this._toggle(view.value)}>
-                  <ha-icon .icon=${off ? 'mdi:eye-off' : 'mdi:eye'}></ha-icon>
-                </button>
-              </div>
-            </div>
-          `;
-        })}
+        ${this._entries().map((entry, row) =>
+          entry.view ? this._renderView(entry.view, exclude.includes(entry.view.value)) : this._renderItem(items[entry.index], entry.index, row),
+        )}
+      </div>
+      <button class="add-button" @click=${() => this._add()}>
+        <ha-icon icon="mdi:plus"></ha-icon>
+        <span>${t('add_element')}</span>
+      </button>
+    `;
+  }
+
+  _renderView(view: any, off: boolean) {
+    const t = (key: string) => localize(key, this.hass);
+    return html`
+      <div class="item view${off ? ' off' : ''}">
+        <div class="row">
+          <span class="handle fixed"></span>
+          <span class="item-icon"><ha-icon .icon=${view.icon}></ha-icon></span>
+          <div class="info">
+            <span class="name">${view.label}</span>
+            <span class="summary">${this.schema.base}/${view.value}</span>
+          </div>
+          <button class="icon" title="${t(off ? 'show_view' : 'hide_view')}" @click=${() => this._toggleView(view.value)}>
+            <ha-icon .icon=${off ? 'mdi:eye-off' : 'mdi:eye'}></ha-icon>
+          </button>
+        </div>
       </div>
     `;
   }
 
-  _toggle(path: string) {
-    const hidden = Array.isArray(this.data) ? this.data.map(String) : [];
-    const value = hidden.includes(path) ? hidden.filter((item) => item !== path) : [...hidden, path];
-    this.dispatchEvent(new CustomEvent('value-changed', { detail: { value }, bubbles: true }));
+  _fireMenu(items: any[], exclude = this._menu.exclude) {
+    this.dispatchEvent(new CustomEvent('value-changed', { detail: { value: { items, exclude } }, bubbles: true }));
   }
 
-  static get styles() {
+  _toggleView(path: string) {
+    const { items, exclude } = this._menu;
+    this._fireMenu(items, exclude.includes(path) ? exclude.filter((item) => item !== path) : [...exclude, path]);
+  }
+
+  _add() {
+    const items = [...this._menu.items, this.schema.newItem()];
+    this._expanded = items.length - 1;
+    this._fireMenu(items);
+  }
+
+  _remove(index: number) {
+    const items = [...this._menu.items];
+    items.splice(index, 1);
+    if (this._expanded === index) this._expanded = -1;
+    else if (this._expanded > index) this._expanded -= 1;
+    this._fireMenu(items);
+  }
+
+  _itemChanged(ev: any, index: number) {
+    ev.stopPropagation();
+    const items = [...this._menu.items];
+    const item = Object.assign({}, ev.detail.value);
+    // the place is not part of the entry's form
+    if (items[index] && items[index].beforeView !== undefined) item.beforeView = items[index].beforeView;
+    else delete item.beforeView;
+    items[index] = item;
+    this._fireMenu(items);
+  }
+
+  // rows from and to; the views stay where they are, the moved item takes the view after it as its place
+  _move(from: number, to: number) {
+    const entries = this._entries();
+    const [moved] = entries.splice(from, 1);
+    if (!moved || moved.view) return;
+    entries.splice(to, 0, moved);
+    const old = this._menu.items;
+    const items: any[] = [];
+    let expanded = -1;
+    entries.forEach((entry, position) => {
+      if (entry.view) return;
+      const item = Object.assign({}, old[entry.index]);
+      // without views shown the places stay as they are
+      if (this._views.length > 0) {
+        const next = entries.slice(position + 1).find((other) => other.view);
+        if (next) item.beforeView = next.view.value;
+        else delete item.beforeView;
+      }
+      if (entry.index === this._expanded) expanded = items.length;
+      items.push(item);
+    });
+    this._expanded = expanded;
+    this._fireMenu(items);
+  }
+
+  static get styles(): any {
     return [
       listStyles,
       css`
-        .row {
-          padding-left: 16px;
-          min-height: 52px;
+        .handle.fixed {
+          cursor: default;
         }
-        .info {
+        .item.view {
+          background: transparent;
+        }
+        .item.view .info {
           cursor: default;
         }
       `,
@@ -3084,7 +3190,7 @@ class SidebarViewsField extends LitElement {
   }
 }
 
-if (!customElements.get('ha-form-sidebar_views')) customElements.define('ha-form-sidebar_views', SidebarViewsField);
+if (!customElements.get('ha-form-sidebar_menu')) customElements.define('ha-form-sidebar_menu', SidebarMenuField);
 
 // Paths for ha-form ("type: sidebar_paths") under a subheading: one field per path, a delete button each, plus to add
 class SidebarPathsField extends LitElement {
