@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.0';
+const SIDEBAR_CARD_VERSION = '0.14.1';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -4393,13 +4393,18 @@ function contentCSS(config: any, barHeight: number) {
       ${padding ? `padding:${padding}px;` : ''}
       ${barHeight ? `margin-top:${barHeight}px;` : ''}
     }
+    /* HA lays the children of #view out as columns (hui-view-container > *); the bar is a row */
     #customSubviewBar {
       position:absolute;
       left:0;
       right:0;
       z-index:1;
       display:flex;
+      flex-direction:row;
+      flex:none;
+      justify-content:flex-start;
       align-items:center;
+      max-width:none;
       gap:0.3em;
       box-sizing:border-box;
       height:${barHeight}px;
@@ -4413,6 +4418,8 @@ function contentCSS(config: any, barHeight: number) {
       justify-content:center;
       width:2.2em;
       height:2.2em;
+      /* the arrow itself, not its round hover area, lines up with the content */
+      margin-left:-0.5em;
       padding:0;
       border:none;
       border-radius:50%;
