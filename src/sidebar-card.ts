@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.13.0';
+const SIDEBAR_CARD_VERSION = '0.14.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -55,6 +55,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     section_menu: 'Menu',
     section_bottom: 'Footer',
     section_layout: 'Width & position',
+    section_content: 'Dashboard content',
+    label_contentPadding: 'Padding of the content',
+    label_subviewBar: 'Back bar for subviews',
+    helper_subviewBar: 'Shows a back arrow and the name of the view above subviews, as the Home Assistant header does.',
+    label_subviewBarSize: 'Size of the back bar',
+    back: 'Back',
     section_design: 'Design',
     section_advanced: 'Advanced',
     label_seconds: 'Show seconds',
@@ -187,6 +193,12 @@ const STRINGS: Record<string, Record<string, string>> = {
     section_menu: 'Menü',
     section_bottom: 'Fußzeile',
     section_layout: 'Breite & Position',
+    section_content: 'Dashboard-Inhalt',
+    label_contentPadding: 'Innenabstand des Inhalts',
+    label_subviewBar: 'Zurück-Leiste für Unteransichten',
+    helper_subviewBar: 'Zeigt über Unteransichten einen Zurück-Pfeil und den Namen der Ansicht, wie die Kopfleiste von Home Assistant.',
+    label_subviewBarSize: 'Größe der Zurück-Leiste',
+    back: 'Zurück',
     section_design: 'Design',
     section_advanced: 'Erweitert',
     label_seconds: 'Sekunden anzeigen',
@@ -476,6 +488,7 @@ const BAR_HEIGHT = 64;
 const BAR_ITEM_MIN_WIDTH = 64;
 const BOTTOM_BUTTON_COLUMNS = 4;
 const TOP_OFFSET = 20;
+const SUBVIEW_BAR_SIZE = 20;
 
 const GLASS_BLUR = 12;
 const SHADOW_SIZE = 12;
@@ -2041,6 +2054,8 @@ const EDITOR_DEFAULTS: Record<string, any> = {
   bottomButtonsColumns: BOTTOM_BUTTON_COLUMNS,
   elementsAlign: 'left',
   topOffset: TOP_OFFSET,
+  contentPadding: 0,
+  subviewBarSize: SUBVIEW_BAR_SIZE,
   widthUnit: '%',
   menuFontSize: 18,
   menuItemSpacing: MENU_ITEM_SPACING,
@@ -2052,7 +2067,7 @@ const DEFAULT_BREAKPOINTS = { tablet: 1024, mobile: 768 };
 const DEFAULT_WIDTH_PERCENT = 25;
 const DEFAULT_WIDTH_PX = 300;
 // switches that are off by default and not stored when off
-const OFF_BY_DEFAULT = ['viewMenu', 'bottomButtonsShowName', 'showRight', 'shadow', 'hideTopMenu', 'showTopMenuOnMobile', 'hideHassSidebar', 'dockHassSidebar', 'debug'];
+const OFF_BY_DEFAULT = ['viewMenu', 'bottomButtonsShowName', 'showRight', 'shadow', 'subviewBar', 'hideTopMenu', 'showTopMenuOnMobile', 'hideHassSidebar', 'dockHassSidebar', 'debug'];
 const COLOR_KEYS = ['background', 'textColor', 'iconColor', 'accentColor', 'dividerColor'];
 const CUSTOM_DATE_FORMAT = 'custom';
 // phones show the bar at the bottom, so there is no width for them
@@ -2183,6 +2198,7 @@ function fromFormData(formData: any, hassObj: any) {
     delete data.blur;
   }
   if (!data.shadow) delete data.shadowSize;
+  if (!data.subviewBar) delete data.subviewBarSize;
   // divider lines are on unless switched off
   if (data.dividers !== false) delete data.dividers;
   if (data.menuPosition === 'center') delete data.menuOffset;
@@ -2602,6 +2618,18 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
         },
         { name: 'showRight', selector: { boolean: {} } },
         { type: 'sidebar_paths', name: 'hideOnPath', placeholder: t('placeholder_path') },
+      ],
+    },
+    {
+      type: 'expandable',
+      name: '',
+      flatten: true,
+      title: t('section_content'),
+      icon: 'mdi:page-layout-body',
+      schema: [
+        slider('contentPadding', 0, 100, 1, 'px', 0),
+        { name: 'subviewBar', selector: { boolean: {} }, __helper: t('helper_subviewBar') },
+        ...(data.subviewBar ? [slider('subviewBarSize', 12, 40, 1, 'px', SUBVIEW_BAR_SIZE)] : []),
       ],
     },
     {
@@ -3517,6 +3545,7 @@ class SidebarCardEditor extends LitElement {
       d.widthUnit,
       d.glass,
       d.shadow,
+      d.subviewBar,
       d.hideTopMenu,
       // views added or deleted in Home Assistant show up right away
       menuViews(this.lovelace).map((view) => [view.value, view.label, view.icon]),
@@ -4177,6 +4206,7 @@ interface SidebarState {
   headerHidden: boolean;
   docked: boolean;
   draft: boolean; // added from the header button and not saved yet
+  subviewBar: any; // the back bar above subviews, while one is shown
 }
 
 let current: SidebarState | null = null;
@@ -4264,7 +4294,8 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
 
   // measure the header height without our own padding override
   if (!hideTopMenu && state.style.textContent.includes('padding-top:0')) state.style.textContent = '';
-  const css = createCSS(config, width, editMode);
+  const barHeight = updateSubviewBar(state, config);
+  const css = createCSS(config, width, editMode) + contentCSS(config, barHeight);
   if (state.style.textContent !== css) state.style.textContent = css;
 
   // only when the option changes, so the menu button can still expand the HA sidebar;
@@ -4284,6 +4315,124 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   state.contentContainer.classList.toggle('hideSidebar', pathHidden);
   state.sidebar.classList.toggle('hide', pathHidden);
   if (pathHidden) log2console('updateStyling', 'Disable sidebar for this path');
+}
+
+// ##########################################################################################
+// ###   Dashboard content: padding and the back bar of subviews
+// ##########################################################################################
+
+// the view in the address bar (by its path or index; the bare dashboard path is the first view)
+function currentViewConfig(lovelace: any) {
+  const views = lovelace && lovelace.config && Array.isArray(lovelace.config.views) ? lovelace.config.views : [];
+  const segment = decodeURIComponent(window.location.pathname.split('/')[2] || '');
+  if (!segment) return views[0];
+  const byPath = views.find((view) => view && view.path !== undefined && String(view.path) === segment);
+  if (byPath) return byPath;
+  return /^\d+$/.test(segment) ? views[Number(segment)] : undefined;
+}
+
+// like Home Assistant's back arrow: back_path if the view has one, otherwise back in the history when we came from
+// a page of the app, otherwise to the dashboard
+function goBackFromSubview(lovelace: any, view: any) {
+  if (view && view.back_path) {
+    navigate(window, String(view.back_path), true);
+    return;
+  }
+  if (window.history.state && window.history.state.from !== undefined) {
+    window.history.back();
+    return;
+  }
+  const views = (lovelace && lovelace.config && lovelace.config.views) || [];
+  navigate(window, views[0] && views[0].subview ? '/' : '/' + ((lovelace && lovelace.urlPath) || 'lovelace'), true);
+}
+
+// shows or removes the back bar above a subview; returns its height (0 without one)
+function updateSubviewBar(state: SidebarState, config: any) {
+  const view = currentViewConfig(state.lovelace);
+  const show = config.subviewBar === true && !!view && view.subview === true;
+  let bar = state.subviewBar;
+  if (!show) {
+    if (bar) bar.remove();
+    return 0;
+  }
+  const size = Number(config.subviewBarSize) || SUBVIEW_BAR_SIZE;
+  if (!bar) {
+    bar = document.createElement('div');
+    bar.id = 'customSubviewBar';
+    const button = document.createElement('button');
+    button.className = 'back';
+    const icon = document.createElement('ha-icon');
+    icon.setAttribute('icon', 'mdi:arrow-left');
+    button.appendChild(icon);
+    const title = document.createElement('span');
+    title.className = 'title';
+    bar.append(button, title);
+    state.subviewBar = bar;
+  }
+  // Home Assistant swaps the view by removing the last child of #view, so the bar goes first
+  const container = state.contentContainer;
+  if (bar.parentNode !== container) container.insertBefore(bar, container.firstChild);
+  const button = bar.querySelector('button');
+  button.title = localize('back', hass());
+  button.onclick = () => goBackFromSubview(state.lovelace, currentViewConfig(state.lovelace));
+  const title = String(view.title || view.path || '');
+  if (bar.lastChild.textContent !== title) bar.lastChild.textContent = title;
+  // right below the header, which is the view's top padding
+  bar.style.top = window.getComputedStyle(container).paddingTop;
+  bar.style.fontSize = `${size}px`;
+  return Math.round(size * 2.8);
+}
+
+// contentPadding around the view, and room above it for the back bar
+function contentCSS(config: any, barHeight: number) {
+  const padding = Math.max(0, Number(config.contentPadding) || 0);
+  if (!padding && !barHeight) return '';
+  return `
+    #view > hui-view {
+      box-sizing:border-box;
+      ${padding ? `padding:${padding}px;` : ''}
+      ${barHeight ? `margin-top:${barHeight}px;` : ''}
+    }
+    #customSubviewBar {
+      position:absolute;
+      left:0;
+      right:0;
+      z-index:1;
+      display:flex;
+      align-items:center;
+      gap:0.3em;
+      box-sizing:border-box;
+      height:${barHeight}px;
+      padding:0 ${padding + 8}px;
+      color:var(--primary-text-color);
+    }
+    #customSubviewBar .back {
+      display:flex;
+      flex:none;
+      align-items:center;
+      justify-content:center;
+      width:2.2em;
+      height:2.2em;
+      padding:0;
+      border:none;
+      border-radius:50%;
+      background:transparent;
+      color:inherit;
+      font:inherit;
+      cursor:pointer;
+      --mdc-icon-size:1.2em;
+      -webkit-tap-highlight-color:transparent;
+    }
+    #customSubviewBar .back:hover {
+      background:rgba(127, 127, 127, 0.15);
+    }
+    #customSubviewBar .title {
+      min-width:0;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      white-space:nowrap;
+    }
+  `;
 }
 
 // measures the header again and sizes the sidebar, e.g. after edit mode added or removed its tab bar
@@ -4359,6 +4508,7 @@ function teardownSidebar() {
   }
   state.wrapper.remove();
   state.style.remove();
+  if (state.subviewBar) state.subviewBar.remove();
 }
 
 // follows dashboard changes: saved sidebar config, added views, edit mode on/off
@@ -4627,6 +4777,7 @@ async function doBuildSidebar(draft?: any) {
     headerHidden: false,
     docked: false,
     draft: !stored,
+    subviewBar: null,
   };
   current = state;
 

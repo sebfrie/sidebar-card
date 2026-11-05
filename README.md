@@ -77,7 +77,7 @@ Under `sidebar:` you can configure the following options:
 | `showRight` | boolean | optional | `false` | If showRight is enabled the sidebar will be shown on the right side of the screen |
 | `viewMenu` | boolean | optional | `false` | Show one menu item per view of the dashboard, with the view's title and icon. Subviews and views hidden for the user are left out. New views show up on their own |
 | `viewMenuExclude` | list | optional | | Paths (or indexes) of views to leave out of `viewMenu`; the editor shows every view with an eye to switch it |
-| `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want. Shown below the views of `viewMenu` |
+| `sidebarMenu` | object | optional | *see info below* | Create a menu that can switch to different pages but also call any service you want. Shown between the views of `viewMenu` (`beforeView`) or below them |
 | `menuIcons` | string | optional | `left` | `left`, `right` or `none`: where menu icons are shown |
 | `menuFontSize` | number | optional | `18` | Font size of the menu in px (up to 40); the spacing of the items grows with it |
 | `menuPosition` | string | optional | `top` | `top` (right below the clocks), `center` or `bottom` of the free space |
@@ -99,6 +99,9 @@ Under `sidebar:` you can configure the following options:
 | `shadow` | boolean | optional | `false` | Casts a shadow onto the dashboard next to the sidebar |
 | `shadowSize` | number | optional | `12` | Size of the shadow in px |
 | `widthUnit` | string | optional | `%` | `%` or `px`, the unit of the numbers in `width` |
+| `contentPadding` | number | optional | `0` | Padding around the dashboard content next to the sidebar, in px |
+| `subviewBar` | boolean | optional | `false` | Above subviews, a bar with a back arrow and the view's name, e.g. when the Home Assistant header is hidden. The arrow goes back like Home Assistant's: to the view's `back_path` if it has one, otherwise to the page you came from, otherwise to the dashboard |
+| `subviewBarSize` | number | optional | `20` | Font size of the back bar in px; the arrow and the bar's height grow with it |
 | `updateMenu` | boolean | optional | `true` | When false the active state of the sidebar will not change by navigating to a different view |
 | `template` | template | optional | *see info below* | Template rules that will show messages to inform you for example with how many lights are on |
 | `style` | css | optional | *see info below* | Overwrite some color variables or write your own styles |
