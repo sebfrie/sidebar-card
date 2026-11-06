@@ -13,7 +13,6 @@ const plugins = [
   commonjs(),
   typescript({
     typescript: require('typescript'),
-    objectHashIgnoreUnknownHack: true,
     tsconfigOverride: { compilerOptions: { sourceMap: false } },
   }),
   json(),
