@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.1';
+const SIDEBAR_CARD_VERSION = '0.14.2';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -596,6 +596,7 @@ class SidebarCard extends LitElement {
   _touchStarted = false;
   _phone = false;
   _barBox = '';
+  _parentPath = ''; // the last view that was no subview, marked while a subview without back_path is open
   _warnedTemplates = new Set<string>();
   _resizeObserver: any = null;
   _boundLocationChange: any;
@@ -1117,7 +1118,7 @@ class SidebarCard extends LitElement {
     const action = item.action || (item.navigation_path ? 'navigate' : '');
     if (action !== 'navigate' || !item.navigation_path) return false;
 
-    const current = normalizePath(window.location.pathname);
+    const current = this._activePath();
     if (normalizePath(item.navigation_path) === current) return true;
     if (item._viewIndex !== undefined) {
       const base = this._dashboardPath();
@@ -1126,6 +1127,18 @@ class SidebarCard extends LitElement {
       if (item._viewIndex === 0 && current === base) return true;
     }
     return false;
+  }
+
+  // the path the menu marks: on a subview the view it belongs to (its back_path, otherwise the view we came from)
+  _activePath() {
+    const current = normalizePath(window.location.pathname);
+    const view = currentViewConfig(this.lovelace || getLovelace());
+    if (!view || !view.subview) {
+      this._parentPath = current;
+      return current;
+    }
+    if (view.back_path) return normalizePath(String(view.back_path));
+    return this._parentPath || current;
   }
 
   _menuAction(item: any) {
