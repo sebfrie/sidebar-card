@@ -725,6 +725,10 @@ n.defineLocale("zh-tw",{months:"一月_二月_三月_四月_五月_六月_七月
       ha-dropdown-item {
         --mdc-icon-size: 20px;
       }
+      /* the options of a select button in "More" open without the submenu chevron */
+      ha-dropdown-item::part(submenu-icon) {
+        display: none;
+      }
       /* as hui-card-edit-mode draws it over cards */
       .edit-overlay {
         position: absolute;
