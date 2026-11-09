@@ -16,6 +16,7 @@ const SIDEBAR_CARD_VERSION = '0.14.2';
 // ##########################################################################################
 
 import { css, html, LitElement } from 'lit-element';
+import { ifDefined } from 'lit-html/directives/if-defined';
 import { moreInfo } from 'card-tools/src/more-info';
 import { hass, provideHass } from 'card-tools/src/hass';
 import { subscribeRenderTemplate } from 'card-tools/src/templates';
@@ -113,6 +114,8 @@ const STRINGS: Record<string, Record<string, string>> = {
     field_entity: 'Entity',
     field_tap_action: 'Tap action',
     field_hold_action: 'Hold action',
+    field_select_options: 'Options right at the button',
+    helper_select_options: 'Tapping opens the options as a dropdown instead of the more-info dialog; holding still runs the hold action.',
     opt_left: 'Left',
     opt_right: 'Right',
     opt_none: 'None',
@@ -251,6 +254,8 @@ const STRINGS: Record<string, Record<string, string>> = {
     field_entity: 'Entität',
     field_tap_action: 'Aktion beim Tippen',
     field_hold_action: 'Aktion beim Halten',
+    field_select_options: 'Auswahl direkt am Button',
+    helper_select_options: 'Tippen öffnet die Optionen als Dropdown statt des Detail-Dialogs; Halten führt weiter die Aktion beim Halten aus.',
     opt_left: 'Links',
     opt_right: 'Rechts',
     opt_none: 'Keine',
@@ -331,14 +336,29 @@ function isActiveState(stateObj: any) {
   return !INACTIVE_STATES.includes(stateObj.state);
 }
 
-function formatState(hassObj: any, stateObj: any) {
+// state: another state of the entity to format, e.g. one of the options of a select
+function formatState(hassObj: any, stateObj: any, state?: string) {
   try {
-    if (hassObj && typeof hassObj.formatEntityState === 'function') return hassObj.formatEntityState(stateObj);
+    if (hassObj && typeof hassObj.formatEntityState === 'function') return hassObj.formatEntityState(stateObj, state);
   } catch {
     // fall back to the raw state
   }
+  if (state !== undefined) return state;
   const unit = stateObj.attributes && stateObj.attributes.unit_of_measurement;
   return unit ? `${stateObj.state} ${unit}` : stateObj.state;
+}
+
+// buttons of these entities can show the options right at the button (select_options: true)
+const SELECT_DOMAINS = ['input_select', 'select'];
+
+function isSelectEntity(entity?: string) {
+  return !!entity && SELECT_DOMAINS.includes(computeDomain(entity));
+}
+
+// the options a button shows in its dropdown; none when it opens no dropdown
+function selectOptions(button: any, stateObj: any): string[] {
+  if (!button.select_options || !stateObj || !isSelectEntity(stateObj.entity_id)) return [];
+  return Array.isArray(stateObj.attributes.options) ? stateObj.attributes.options : [];
 }
 
 function defaultTapAction(entity?: string) {
@@ -877,9 +897,11 @@ class SidebarCard extends LitElement {
     `;
   }
 
+  // a button with select_options gets its options as a submenu
   _renderButtonMenuItem(button: any, index: number) {
     const stateObj = button.entity && this.hass ? this.hass.states[button.entity] : undefined;
     const name = button.name || (stateObj ? stateObj.attributes.friendly_name || button.entity : button.entity || '');
+    const options = selectOptions(button, stateObj);
     return html`
       <ha-dropdown-item value="button:${index}">
         ${stateObj && customElements.get('ha-state-icon')
@@ -895,14 +917,23 @@ class SidebarCard extends LitElement {
               <span slot="details">${formatState(this.hass, stateObj)}</span>
             `
           : ''}
+        ${options.map(
+          (option, optionIndex) => html`
+            <ha-dropdown-item slot="submenu" value="option:${index}:${optionIndex}" ?selected=${option === stateObj.state}>
+              ${formatState(this.hass, stateObj, option)}
+            </ha-dropdown-item>
+          `,
+        )}
       </ha-dropdown-item>
     `;
   }
 
   _moreSelect(ev: any, overflow: any[], buttons: any[]) {
-    const [kind, index] = String((ev.detail && ev.detail.item && ev.detail.item.value) || '').split(':');
+    const [kind, index, optionIndex] = String((ev.detail && ev.detail.item && ev.detail.item.value) || '').split(':');
+    const button = buttons[Number(index)];
     if (kind === 'menu' && overflow[Number(index)]) this._menuAction(overflow[Number(index)]);
-    else if (kind === 'button' && buttons[Number(index)]) this._buttonAction(buttons[Number(index)], 'tap');
+    else if (kind === 'button' && button) this._buttonAction(button, 'tap');
+    else if (kind === 'option' && button) this._selectOption(button, selectOptions(button, this.hass.states[button.entity])[Number(optionIndex)]);
   }
 
   // the bar spans the dashboard's content, not the HA sidebar next to it
@@ -1009,6 +1040,8 @@ class SidebarCard extends LitElement {
   _renderButton(button: any, layout: string, showName: boolean) {
     const stateObj = button.entity && this.hass ? this.hass.states[button.entity] : undefined;
     const name = button.name || (stateObj ? stateObj.attributes.friendly_name || button.entity : button.entity || '');
+    const options = selectOptions(button, stateObj);
+    const dropdown = options.length > 0;
     const classes = `sb-button${isActiveState(stateObj) ? ' on' : ''}${stateObj && stateObj.state === 'unavailable' ? ' unavailable' : ''}`;
     const icon =
       stateObj && customElements.get('ha-state-icon')
@@ -1019,8 +1052,9 @@ class SidebarCard extends LitElement {
             <ha-icon .icon=${button.icon || (stateObj && stateObj.attributes.icon) || 'mdi:gesture-tap-button'}></ha-icon>
           `;
 
-    return html`
+    const trigger = html`
       <button
+        slot=${ifDefined(dropdown ? 'trigger' : undefined)}
         class="${classes}"
         title="${name}"
         @pointerdown=${() => this._pointerDown(button)}
@@ -1028,7 +1062,7 @@ class SidebarCard extends LitElement {
         @pointerleave=${() => clearTimeout(this._holdTimer)}
         @pointercancel=${() => clearTimeout(this._holdTimer)}
         @contextmenu=${(e) => e.preventDefault()}
-        @click=${() => this._buttonClick(button)}
+        @click=${(ev) => this._buttonClick(button, ev, dropdown)}
       >
         <span class="sb-icon">${icon}</span>
         ${layout === 'list' || showName
@@ -1042,6 +1076,19 @@ class SidebarCard extends LitElement {
             `
           : ''}
       </button>
+    `;
+    if (!dropdown) return trigger;
+
+    // the options open right at the button; holding it still runs the hold action
+    return html`
+      <ha-dropdown placement="${this.config.showRight ? 'top-end' : 'top-start'}" @wa-select=${(ev) => this._selectOption(button, ev.detail.item.value)}>
+        ${trigger}
+        ${options.map(
+          (option) => html`
+            <ha-dropdown-item .value=${option} ?selected=${option === stateObj.state}>${formatState(this.hass, stateObj, option)}</ha-dropdown-item>
+          `,
+        )}
+      </ha-dropdown>
     `;
   }
 
@@ -1283,13 +1330,21 @@ class SidebarCard extends LitElement {
     }, 500);
   }
 
-  _buttonClick(button: any) {
+  // dropdown: the button opens its options itself (as the trigger of ha-dropdown)
+  _buttonClick(button: any, ev: Event, dropdown = false) {
     clearTimeout(this._holdTimer);
     if (this._held) {
       this._held = false;
+      // a hold must not open the options as well
+      if (dropdown) ev.stopPropagation();
       return;
     }
-    this._buttonAction(button, 'tap');
+    if (!dropdown) this._buttonAction(button, 'tap');
+  }
+
+  _selectOption(button: any, option: string) {
+    if (!this.hass || !button.entity || option === undefined) return;
+    this.hass.callService(computeDomain(button.entity), 'select_option', { entity_id: button.entity, option });
   }
 
   _buttonAction(button: any, action: 'tap' | 'hold') {
@@ -2418,13 +2473,16 @@ function menuItemSchema(hassObj: any) {
   ];
 }
 
-function buttonSchema(hassObj: any) {
+// select entities offer their options at the button; then tapping opens those instead of the tap action
+function buttonSchema(item: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
+  const select = isSelectEntity(item.entity);
   return [
     { name: 'entity', selector: { entity: {} }, __label: t('field_entity') },
     { name: 'name', selector: { text: {} }, __label: t('field_name') },
     { name: 'icon', selector: { icon: {} }, __label: t('field_icon') },
-    { name: 'tap_action', selector: { ui_action: {} }, __label: t('field_tap_action') },
+    ...(select ? [{ name: 'select_options', selector: { boolean: {} }, __label: t('field_select_options'), __helper: t('helper_select_options') }] : []),
+    ...(select && item.select_options ? [] : [{ name: 'tap_action', selector: { ui_action: {} }, __label: t('field_tap_action') }]),
     { name: 'hold_action', selector: { ui_action: {} }, __label: t('field_hold_action') },
   ];
 }
@@ -2568,7 +2626,8 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             return item.name || (stateObj ? stateObj.attributes.friendly_name : item.entity) || t('new_button');
           },
           itemSummary: (item: any) => (item.entity && (item.name || (hassObj && hassObj.states && hassObj.states[item.entity])) ? item.entity : ''),
-          itemSchema: () => buttonSchema(hassObj),
+          itemSchema: (item: any) => buttonSchema(item, hassObj),
+          itemSchemaKey: (item: any) => [isSelectEntity(item.entity), !!item.select_options].join('|'),
         },
         {
           name: 'bottomButtonsLayout',

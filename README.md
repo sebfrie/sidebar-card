@@ -296,6 +296,7 @@ Every item takes the usual card options:
 | `icon` | Icon, defaults to the entity's icon |
 | `tap_action` | Any Home Assistant action. Default: toggle for lights, switches, fans, input booleans, automations and scripts, more-info for everything else |
 | `hold_action` | Any Home Assistant action. Default: more-info |
+| `select_options` | Only for `input_select` and `select` entities: `true` opens the options as a dropdown right at the button instead of the tap action. On phones they show up as a submenu of the button in "More" |
 
 ```yaml
 sidebar:
@@ -304,6 +305,8 @@ sidebar:
     - entity: lock.front_door
       tap_action:
         action: more-info
+    - entity: input_select.house_mode
+      select_options: true
     - name: Assist
       icon: mdi:microphone
       tap_action:
