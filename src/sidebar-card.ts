@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.4';
+const SIDEBAR_CARD_VERSION = '0.14.5';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -2478,6 +2478,17 @@ function menuItemSchema(hassObj: any) {
 }
 
 // select entities offer their options at the button; then tapping opens those instead of the tap action
+// what a button without entity does when tapped, in HA's words: "URL (ks://music-library)"
+function actionSummary(action: any, hassObj: any) {
+  if (!action || typeof action !== 'object' || !action.action) return '';
+  const type = String(action.action);
+  const key = type === 'call-service' ? 'perform-action' : type;
+  const label =
+    (hassObj && typeof hassObj.localize === 'function' && hassObj.localize(`ui.panel.lovelace.editor.action-editor.actions.${key}`)) || type;
+  const detail = action.url_path || action.navigation_path || action.perform_action || action.service || '';
+  return detail ? `${label} (${detail})` : label;
+}
+
 function buttonSchema(item: any, hassObj: any) {
   const t = (key: string) => localize(key, hassObj);
   const select = isSelectEntity(item.entity);
@@ -2629,7 +2640,8 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
             const stateObj = item.entity && hassObj && hassObj.states ? hassObj.states[item.entity] : undefined;
             return item.name || (stateObj ? stateObj.attributes.friendly_name : item.entity) || t('new_button');
           },
-          itemSummary: (item: any) => (item.entity && (item.name || (hassObj && hassObj.states && hassObj.states[item.entity])) ? item.entity : ''),
+          itemSummary: (item: any) =>
+            item.entity ? (item.name || (hassObj && hassObj.states && hassObj.states[item.entity]) ? item.entity : '') : actionSummary(item.tap_action, hassObj),
           itemSchema: (item: any) => buttonSchema(item, hassObj),
           itemSchemaKey: (item: any) => [isSelectEntity(item.entity), !!item.select_options].join('|'),
         },
@@ -3595,8 +3607,18 @@ class SidebarCardEditor extends LitElement {
     };
   }
 
+  // the dashboard the editor belongs to; leaving it closes the editor without saving
+  _dashboard = '';
+
+  _onLocation = () => {
+    if (window.location.pathname.split('/')[1] !== this._dashboard) this._close(false);
+  };
+
   connectedCallback() {
     super.connectedCallback();
+    this._dashboard = window.location.pathname.split('/')[1];
+    window.addEventListener('location-changed', this._onLocation);
+    window.addEventListener('popstate', this._onLocation);
     this._data = toFormData(this.originalConfig, this.hass);
     loadHaForm().then(() => {
       this._ready = true;
@@ -3724,6 +3746,12 @@ class SidebarCardEditor extends LitElement {
       this._error = localize('delete_error', this.hass) + ': ' + ((err && (err as any).message) || err);
       this._saving = false;
     }
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    window.removeEventListener('location-changed', this._onLocation);
+    window.removeEventListener('popstate', this._onLocation);
   }
 
   _close(saved: boolean) {
