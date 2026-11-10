@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.6';
+const SIDEBAR_CARD_VERSION = '0.14.7';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -4402,9 +4402,11 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   // measure the header height without our own padding override
   if (!hideTopMenu && state.style.textContent.includes('padding-top:0')) state.style.textContent = '';
   const barHeight = updateSubviewBar(state, config);
-  // from the dashboard's edge to the window's edge: includes the page's scrollbar and a popup's gutter, whichever is there
+  // the window's width without what lies next to the dashboard (HA's sidebar, on the left or, right to left, on the
+  // right): includes the page's scrollbar and a popup's gutter, on whichever side the browser puts them
   const rect = state.wrapper.getBoundingClientRect();
-  const base = document.dir === 'rtl' ? rect.right : window.innerWidth - rect.left;
+  const page = document.documentElement.getBoundingClientRect();
+  const base = window.innerWidth - Math.max(0, rect.left - page.left) - Math.max(0, page.right - rect.right);
   const css = createCSS(config, width, editMode, base) + contentCSS(config, barHeight);
   if (state.style.textContent !== css) state.style.textContent = css;
 
