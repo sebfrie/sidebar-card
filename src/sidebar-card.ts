@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.5';
+const SIDEBAR_CARD_VERSION = '0.14.6';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -3969,9 +3969,9 @@ function resolveWidth(sidebarConfig: any, screenWidth: number) {
   return String(width).trim();
 }
 
-// outside: the width next to the dashboard (HA's sidebar); a width in % then counts from the dashboard's width with the
-// page's scrollbar, so it stays the same on views with and without one
-function createCSS(sidebarConfig: any, screenWidth: number, editMode = false, outside = 0) {
+// base: the dashboard's width with the page's scrollbar (or the gutter a popup keeps for it); a width in % counts from
+// it, so it stays the same on views with and without a scrollbar and while a popup locks the page
+function createCSS(sidebarConfig: any, screenWidth: number, editMode = false, base = 0) {
   const hideTopMenu = isTopMenuHidden(sidebarConfig, screenWidth, editMode);
   // phones: no column next to the view, the bar is fixed at the bottom and the view keeps room for it
   if (screenWidth <= sidebarConfig.breakpoints.mobile) {
@@ -4002,7 +4002,7 @@ function createCSS(sidebarConfig: any, screenWidth: number, editMode = false, ou
   const headerHeightPx = getHeaderHeightPx();
   const resolved = resolveWidth(sidebarConfig, screenWidth);
   const hidden = parseFloat(resolved) === 0;
-  const sidebarWidth = /^\d+(\.\d+)?%$/.test(resolved) ? `calc((100vw - ${outside}px) * ${parseFloat(resolved) / 100})` : resolved;
+  const sidebarWidth = base > 0 && /^\d+(\.\d+)?%$/.test(resolved) ? `${Math.round(base * parseFloat(resolved)) / 100}px` : resolved;
 
   return `
     #customSidebarWrapper {
@@ -4402,10 +4402,10 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   // measure the header height without our own padding override
   if (!hideTopMenu && state.style.textContent.includes('padding-top:0')) state.style.textContent = '';
   const barHeight = updateSubviewBar(state, config);
-  // 100vw includes the page's scrollbar, the dashboard's width does not
-  const scrollbar = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
-  const outside = Math.max(0, Math.round(window.innerWidth - state.wrapper.getBoundingClientRect().width - scrollbar));
-  const css = createCSS(config, width, editMode, outside) + contentCSS(config, barHeight);
+  // from the dashboard's edge to the window's edge: includes the page's scrollbar and a popup's gutter, whichever is there
+  const rect = state.wrapper.getBoundingClientRect();
+  const base = document.dir === 'rtl' ? rect.right : window.innerWidth - rect.left;
+  const css = createCSS(config, width, editMode, base) + contentCSS(config, barHeight);
   if (state.style.textContent !== css) state.style.textContent = css;
 
   // only when the option changes, so the menu button can still expand the HA sidebar;
