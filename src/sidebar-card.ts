@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.2';
+const SIDEBAR_CARD_VERSION = '0.14.3';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -4283,6 +4283,7 @@ interface SidebarState {
   docked: boolean;
   draft: boolean; // added from the header button and not saved yet
   subviewBar: any; // the back bar above subviews, while one is shown
+  gutter: string; // the page's scrollbar-gutter before we set it
 }
 
 let current: SidebarState | null = null;
@@ -4570,6 +4571,7 @@ function dropState(state: SidebarState) {
     setHassSidebarHidden(false);
     state.hassSidebarHidden = false;
   }
+  if (!current || current === state) document.documentElement.style.setProperty('scrollbar-gutter', state.gutter);
   if (current === state) current = null;
 }
 
@@ -4861,8 +4863,11 @@ async function doBuildSidebar(draft?: any) {
     docked: false,
     draft: !stored,
     subviewBar: null,
+    gutter: document.documentElement.style.getPropertyValue('scrollbar-gutter'),
   };
   current = state;
+  // room for the page's scrollbar also on views that do not scroll, so the width in % does not jump between views
+  document.documentElement.style.setProperty('scrollbar-gutter', 'stable');
 
   addListener(state, window, 'resize', () => relayout(state), true);
   // right away, so hideOnPath shows the sidebar again on the next view (#78); once more after HA re-rendered the header
