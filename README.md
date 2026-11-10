@@ -297,6 +297,7 @@ Every item takes the usual card options:
 | `tap_action` | Any Home Assistant action. Default: toggle for lights, switches, fans, input booleans, automations and scripts, more-info for everything else |
 | `hold_action` | Any Home Assistant action. Default: more-info |
 | `select_options` | Only for `input_select` and `select` entities: `true` opens the options as a dropdown right at the button instead of the tap action. On phones they show up as a submenu of the button in "More" |
+| `visibility` | Conditions as in a card's `visibility`: the button is only shown when all of them are met. Home Assistant evaluates them as for a card, so every condition type works, and conditions without an entity refer to the button's `entity`. In the editor it is Home Assistant's own conditions editor; in edit mode hidden buttons are shown dimmed |
 
 ```yaml
 sidebar:

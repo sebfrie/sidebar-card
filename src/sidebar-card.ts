@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.7';
+const SIDEBAR_CARD_VERSION = '0.15.0';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -62,6 +62,8 @@ const STRINGS: Record<string, Record<string, string>> = {
     helper_subviewBar: 'Shows a back arrow and the name of the view above subviews, as the Home Assistant header does.',
     label_subviewBarSize: 'Size of the back bar',
     back: 'Back',
+    section_visibility: 'Visibility',
+    visibility_unavailable: 'The conditions editor of Home Assistant could not be loaded.',
     section_design: 'Design',
     section_advanced: 'Advanced',
     label_seconds: 'Show seconds',
@@ -202,6 +204,8 @@ const STRINGS: Record<string, Record<string, string>> = {
     helper_subviewBar: 'Zeigt über Unteransichten einen Zurück-Pfeil und den Namen der Ansicht, wie die Kopfleiste von Home Assistant.',
     label_subviewBarSize: 'Größe der Zurück-Leiste',
     back: 'Zurück',
+    section_visibility: 'Sichtbarkeit',
+    visibility_unavailable: 'Der Bedingungs-Editor von Home Assistant konnte nicht geladen werden.',
     section_design: 'Design',
     section_advanced: 'Erweitert',
     label_seconds: 'Sekunden anzeigen',
@@ -616,6 +620,9 @@ class SidebarCard extends LitElement {
   _touchStarted = false;
   _phone = false;
   _barBox = '';
+  _probes: any[] = []; // per footer button with visibility conditions: a hidden hui-card that evaluates them
+  _probeKey = '';
+  _probeHost: any = null;
   _parentPath = ''; // the last view that was no subview, marked while a subview without back_path is open
   _warnedTemplates = new Set<string>();
   _resizeObserver: any = null;
@@ -708,13 +715,13 @@ class SidebarCard extends LitElement {
     this._phone = isPhone(c);
     if (this._phone) return this._renderBar(c);
     const items = this._menuItems();
-    const buttons = Array.isArray(c.bottomButtons) ? c.bottomButtons.filter((b) => b && typeof b === 'object') : [];
+    const buttons = this._buttons(c);
     const layout = c.bottomButtonsLayout === 'list' ? 'list' : 'row';
     const align = ['center', 'right', 'stretch', 'grid'].includes(c.bottomButtonsAlign) ? c.bottomButtonsAlign : 'left';
     const columns = Math.max(1, Math.round(Number(c.bottomButtonsColumns)) || BOTTOM_BUTTON_COLUMNS);
     const iconPosition = ['left', 'right', 'none'].includes(c.menuIcons) ? c.menuIcons : 'left';
-    const showFooter = buttons.length > 0 || !!c.bottomCard;
     const editMode = this._isEditMode();
+    const showFooter = buttons.some((_button, index) => editMode || this._buttonVisible(index)) || !!c.bottomCard;
 
     return html`
       ${c.style
@@ -768,7 +775,13 @@ class SidebarCard extends LitElement {
                 ${buttons.length > 0
                   ? html`
                       <div class="buttons ${layout}${layout === 'row' ? ' align-' + align : ''}" style="${align === 'grid' ? `--sb-columns: ${columns}` : ''}">
-                        ${buttons.map((button) => this._renderButton(button, layout, c.bottomButtonsShowName === true))}
+                        ${buttons.map((button, index) =>
+                          this._buttonVisible(index)
+                            ? this._renderButton(button, layout, c.bottomButtonsShowName === true)
+                            : editMode
+                            ? this._renderButton(button, layout, c.bottomButtonsShowName === true, true)
+                            : '',
+                        )}
                       </div>
                     `
                   : ''}
@@ -823,7 +836,7 @@ class SidebarCard extends LitElement {
   // phones: the menu as a bar at the bottom; what does not fit, and the footer buttons, go into "More"
   _renderBar(c: any) {
     const items = this._menuItems();
-    const buttons = Array.isArray(c.bottomButtons) ? c.bottomButtons.filter((b) => b && typeof b === 'object') : [];
+    const buttons = this._buttons(c).filter((_button, index) => this._buttonVisible(index));
     const editMode = this._isEditMode();
     const box = this._barRect();
     const slots = Math.max(1, Math.floor(box.width / BAR_ITEM_MIN_WIDTH));
@@ -1037,12 +1050,13 @@ class SidebarCard extends LitElement {
     `;
   }
 
-  _renderButton(button: any, layout: string, showName: boolean) {
+  // hiddenNow: its visibility conditions are not met; only shown, dimmed, while editing
+  _renderButton(button: any, layout: string, showName: boolean, hiddenNow = false) {
     const stateObj = button.entity && this.hass ? this.hass.states[button.entity] : undefined;
     const name = button.name || (stateObj ? stateObj.attributes.friendly_name || button.entity : button.entity || '');
     const options = selectOptions(button, stateObj);
     const dropdown = options.length > 0;
-    const classes = `sb-button${isActiveState(stateObj) ? ' on' : ''}${stateObj && stateObj.state === 'unavailable' ? ' unavailable' : ''}`;
+    const classes = `sb-button${isActiveState(stateObj) ? ' on' : ''}${stateObj && stateObj.state === 'unavailable' ? ' unavailable' : ''}${hiddenNow ? ' hidden-now' : ''}`;
     const icon =
       stateObj && customElements.get('ha-state-icon')
         ? html`
@@ -1455,11 +1469,51 @@ class SidebarCard extends LitElement {
     if (changedProps.has('config')) {
       this._applyDesign();
       this._ensureBottomCard();
+      this._syncProbes();
     }
     if (changedProps.has('hass')) {
       if (this._bottomCardEl) this._bottomCardEl.hass = this.hass;
       if (this._editor) this._editor.hass = this.hass;
+      this._probes.forEach((probe) => probe && (probe.hass = this.hass));
     }
+  }
+
+  _buttons(c: any) {
+    return Array.isArray(c.bottomButtons) ? c.bottomButtons.filter((b) => b && typeof b === 'object') : [];
+  }
+
+  // A button's visibility conditions are those of a card, so Home Assistant's hui-card decides about them, with the
+  // same rules, updates and conditions core evaluates. One hidden probe per button with conditions.
+  _syncProbes() {
+    const buttons = this._buttons(this.config || {});
+    const conditionsOf = (button: any) => (Array.isArray(button.visibility) && button.visibility.length > 0 ? button.visibility : null);
+    const key = JSON.stringify(buttons.map((button) => (conditionsOf(button) ? [button.entity || '', button.visibility] : 0)));
+    if (key === this._probeKey || !this.shadowRoot) return;
+    this._probeKey = key;
+    this._probes.forEach((probe) => probe && probe.remove());
+    if (!this._probeHost) {
+      this._probeHost = document.createElement('div');
+      this._probeHost.style.display = 'none';
+      this.shadowRoot.appendChild(this._probeHost);
+    }
+    this._probes = buttons.map((button) => {
+      const visibility = conditionsOf(button);
+      if (!visibility) return null;
+      const probe: any = document.createElement('hui-card');
+      probe.preview = false;
+      // with the button's entity, conditions without one refer to it, as on a card
+      probe.config = Object.assign({ type: 'heading', heading: '', visibility }, button.entity ? { entity: button.entity } : {});
+      probe.hass = this.hass;
+      probe.addEventListener('card-visibility-changed', () => this.requestUpdate());
+      this._probeHost.appendChild(probe);
+      return probe;
+    });
+    this.requestUpdate();
+  }
+
+  _buttonVisible(index: number) {
+    const probe = this._probes[index];
+    return !probe || !probe.hasAttribute('hidden');
   }
 
   // design options are CSS custom properties, so a theme or the style option can still override the defaults
@@ -2000,6 +2054,10 @@ class SidebarCard extends LitElement {
       .sb-button.unavailable {
         opacity: 0.45;
       }
+      /* its visibility conditions are not met: shown only in edit mode, like hidden cards */
+      .sb-button.hidden-now {
+        opacity: 0.35;
+      }
       .sb-icon {
         display: flex;
         color: var(--sb-icon);
@@ -2499,7 +2557,32 @@ function buttonSchema(item: any, hassObj: any) {
     ...(select ? [{ name: 'select_options', selector: { boolean: {} }, __label: t('field_select_options'), __helper: t('helper_select_options') }] : []),
     ...(select && item.select_options ? [] : [{ name: 'tap_action', selector: { ui_action: {} }, __label: t('field_tap_action') }]),
     { name: 'hold_action', selector: { ui_action: {} }, __label: t('field_hold_action') },
+    {
+      type: 'expandable',
+      name: '',
+      flatten: true,
+      title: haText(hassObj, 'ui.panel.lovelace.editor.edit_card.tab_visibility', 'section_visibility'),
+      icon: 'mdi:eye-outline',
+      schema: [{ type: 'sidebar_visibility', name: 'visibility', entity: item.entity }],
+    },
   ];
+}
+
+// Home Assistant loads its conditions editor with the editor of the conditional card
+async function loadConditionsEditor() {
+  if (customElements.get('ha-card-conditions-editor')) return;
+  try {
+    const helpers = await (window as any).loadCardHelpers?.();
+    if (helpers) {
+      helpers.createCardElement({ type: 'conditional', conditions: [], card: { type: 'markdown', content: '' } });
+      await Promise.race([customElements.whenDefined('hui-conditional-card'), sleep(5000)]);
+      const conditionalCard: any = customElements.get('hui-conditional-card');
+      if (conditionalCard && conditionalCard.getConfigElement) await conditionalCard.getConfigElement();
+    }
+  } catch (err) {
+    error2console('loadConditionsEditor', 'Could not load the conditions editor', err);
+  }
+  await Promise.race([customElements.whenDefined('ha-card-conditions-editor'), sleep(5000)]);
 }
 
 // ha-form is loaded on demand by Home Assistant; the tile card editor pulls it in
@@ -2643,7 +2726,7 @@ function buildEditorSchema(data: any, lovelace: any, hassObj: any) {
           itemSummary: (item: any) =>
             item.entity ? (item.name || (hassObj && hassObj.states && hassObj.states[item.entity]) ? item.entity : '') : actionSummary(item.tap_action, hassObj),
           itemSchema: (item: any) => buttonSchema(item, hassObj),
-          itemSchemaKey: (item: any) => [isSelectEntity(item.entity), !!item.select_options].join('|'),
+          itemSchemaKey: (item: any) => [item.entity || '', !!item.select_options].join('|'),
         },
         {
           name: 'bottomButtonsLayout',
@@ -3578,6 +3661,101 @@ class SidebarSliderField extends LitElement {
 }
 
 if (!customElements.get('ha-form-sidebar_slider')) customElements.define('ha-form-sidebar_slider', SidebarSliderField);
+
+// The visibility of a footer button for ha-form ("type: sidebar_visibility"): Home Assistant's status and conditions
+// editor, as on the visibility tab of a card. Value: the conditions, as a card's visibility.
+class SidebarVisibilityField extends LitElement {
+  hass: any;
+  schema: any;
+  data: any;
+  _ready = false;
+  _contextCallbacks = new Set<any>();
+
+  static get properties() {
+    return {
+      hass: { attribute: false },
+      schema: { attribute: false },
+      data: { attribute: false },
+      label: { attribute: false },
+      _ready: { attribute: false },
+    };
+  }
+
+  connectedCallback() {
+    super.connectedCallback();
+    this.addEventListener('context-request', this._onContext);
+    loadConditionsEditor().then(() => (this._ready = true));
+  }
+
+  disconnectedCallback() {
+    super.disconnectedCallback();
+    this.removeEventListener('context-request', this._onContext);
+    this._contextCallbacks.clear();
+  }
+
+  get _entityContext() {
+    const entity = this.schema && this.schema.entity;
+    return entity ? { mode: 'current', entityId: entity } : undefined;
+  }
+
+  // the button's entity for "current entity" conditions, as a card editor offers its card's entity
+  _onContext = (ev: any) => {
+    if (ev.context !== 'conditions-entity-context') return;
+    ev.stopPropagation();
+    if (ev.subscribe) {
+      const callback = ev.callback;
+      this._contextCallbacks.add(callback);
+      callback(this._entityContext, () => this._contextCallbacks.delete(callback));
+    } else {
+      ev.callback(this._entityContext);
+    }
+  };
+
+  updated(changedProps: any) {
+    if (changedProps.has('schema')) this._contextCallbacks.forEach((callback) => callback(this._entityContext, () => this._contextCallbacks.delete(callback)));
+  }
+
+  render() {
+    if (!this._ready) return html``;
+    const conditions = Array.isArray(this.data) ? this.data : [];
+    if (!customElements.get('ha-card-conditions-editor')) {
+      return html`
+        <div class="note">${localize('visibility_unavailable', this.hass)}</div>
+      `;
+    }
+    return html`
+      ${customElements.get('ha-visibility-status')
+        ? html`
+            <ha-visibility-status .hass=${this.hass} .conditions=${conditions}></ha-visibility-status>
+          `
+        : ''}
+      <ha-card-conditions-editor .hass=${this.hass} .conditions=${conditions} @value-changed=${(ev) => this._changed(ev)}></ha-card-conditions-editor>
+    `;
+  }
+
+  _changed(ev: any) {
+    ev.stopPropagation();
+    const conditions = ev.detail && Array.isArray(ev.detail.value) ? ev.detail.value : [];
+    this.dispatchEvent(new CustomEvent('value-changed', { detail: { value: conditions.length > 0 ? conditions : undefined }, bubbles: true }));
+  }
+
+  static get styles() {
+    return css`
+      :host {
+        display: block;
+      }
+      ha-visibility-status {
+        display: block;
+        margin-bottom: 12px;
+      }
+      .note {
+        color: var(--secondary-text-color);
+      }
+    `;
+  }
+}
+
+if (!customElements.get('ha-form-sidebar_visibility')) customElements.define('ha-form-sidebar_visibility', SidebarVisibilityField);
 
 
 class SidebarCardEditor extends LitElement {
