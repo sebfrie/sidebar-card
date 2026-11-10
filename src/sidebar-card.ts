@@ -9,7 +9,7 @@
 // ##########################################################################################
 
 const SIDEBAR_CARD_TITLE = 'SIDEBAR-CARD';
-const SIDEBAR_CARD_VERSION = '0.14.3';
+const SIDEBAR_CARD_VERSION = '0.14.4';
 
 // ##########################################################################################
 // ###   Import dependencies
@@ -3941,7 +3941,9 @@ function resolveWidth(sidebarConfig: any, screenWidth: number) {
   return String(width).trim();
 }
 
-function createCSS(sidebarConfig: any, screenWidth: number, editMode = false) {
+// outside: the width next to the dashboard (HA's sidebar); a width in % then counts from the dashboard's width with the
+// page's scrollbar, so it stays the same on views with and without one
+function createCSS(sidebarConfig: any, screenWidth: number, editMode = false, outside = 0) {
   const hideTopMenu = isTopMenuHidden(sidebarConfig, screenWidth, editMode);
   // phones: no column next to the view, the bar is fixed at the bottom and the view keeps room for it
   if (screenWidth <= sidebarConfig.breakpoints.mobile) {
@@ -3970,8 +3972,9 @@ function createCSS(sidebarConfig: any, screenWidth: number, editMode = false) {
   `;
   }
   const headerHeightPx = getHeaderHeightPx();
-  const sidebarWidth = resolveWidth(sidebarConfig, screenWidth);
-  const hidden = parseFloat(sidebarWidth) === 0;
+  const resolved = resolveWidth(sidebarConfig, screenWidth);
+  const hidden = parseFloat(resolved) === 0;
+  const sidebarWidth = /^\d+(\.\d+)?%$/.test(resolved) ? `calc((100vw - ${outside}px) * ${parseFloat(resolved) / 100})` : resolved;
 
   return `
     #customSidebarWrapper {
@@ -4283,7 +4286,6 @@ interface SidebarState {
   docked: boolean;
   draft: boolean; // added from the header button and not saved yet
   subviewBar: any; // the back bar above subviews, while one is shown
-  gutter: string; // the page's scrollbar-gutter before we set it
 }
 
 let current: SidebarState | null = null;
@@ -4372,7 +4374,10 @@ function updateStyling(state: SidebarState, sidebarConfig: any) {
   // measure the header height without our own padding override
   if (!hideTopMenu && state.style.textContent.includes('padding-top:0')) state.style.textContent = '';
   const barHeight = updateSubviewBar(state, config);
-  const css = createCSS(config, width, editMode) + contentCSS(config, barHeight);
+  // 100vw includes the page's scrollbar, the dashboard's width does not
+  const scrollbar = Math.max(0, window.innerWidth - document.documentElement.clientWidth);
+  const outside = Math.max(0, Math.round(window.innerWidth - state.wrapper.getBoundingClientRect().width - scrollbar));
+  const css = createCSS(config, width, editMode, outside) + contentCSS(config, barHeight);
   if (state.style.textContent !== css) state.style.textContent = css;
 
   // only when the option changes, so the menu button can still expand the HA sidebar;
@@ -4571,7 +4576,6 @@ function dropState(state: SidebarState) {
     setHassSidebarHidden(false);
     state.hassSidebarHidden = false;
   }
-  if (!current || current === state) document.documentElement.style.setProperty('scrollbar-gutter', state.gutter);
   if (current === state) current = null;
 }
 
@@ -4863,11 +4867,8 @@ async function doBuildSidebar(draft?: any) {
     docked: false,
     draft: !stored,
     subviewBar: null,
-    gutter: document.documentElement.style.getPropertyValue('scrollbar-gutter'),
   };
   current = state;
-  // room for the page's scrollbar also on views that do not scroll, so the width in % does not jump between views
-  document.documentElement.style.setProperty('scrollbar-gutter', 'stable');
 
   addListener(state, window, 'resize', () => relayout(state), true);
   // right away, so hideOnPath shows the sidebar again on the next view (#78); once more after HA re-rendered the header
